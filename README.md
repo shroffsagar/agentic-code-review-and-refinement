@@ -2,6 +2,12 @@
 
 A sophisticated AI-powered system for automated code review and refinement, integrating with GitHub's ecosystem to provide intelligent code analysis and improvement suggestions.
 
+## System Design
+
+The following diagram illustrates the high-level architecture and workflow of the Agentic Code Review and Refinement System:
+
+![System Design](docs/assets/Design%20-%20Code%20Review%20%26%20Refinement%20Agent.png)
+
 ## Project Development Phases
 
 ### Phase 1: Core Infrastructure Setup
