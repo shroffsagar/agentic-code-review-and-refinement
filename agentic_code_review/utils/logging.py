@@ -1,18 +1,16 @@
 """Logging configuration for the Agentic Code Review system."""
 
 import logging
-import sys
-from typing import Optional
 
 from rich.logging import RichHandler
 
 
 def setup_logging(
     level: str = "INFO",
-    log_file: Optional[str] = None,
+    log_file: str | None = None,
 ) -> None:
     """Configure logging for the application.
-    
+
     Args:
         level: The logging level to use (default: "INFO")
         log_file: Optional path to a log file (default: None)
@@ -45,4 +43,4 @@ def setup_logging(
     if log_file:
         file_handler = logging.FileHandler(log_file)
         file_handler.setFormatter(file_formatter)
-        logger.addHandler(file_handler) 
+        logger.addHandler(file_handler)

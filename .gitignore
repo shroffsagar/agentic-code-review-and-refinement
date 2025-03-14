@@ -36,17 +36,18 @@ ENV/
 
 # Testing
 .coverage
-htmlcov/
+coverage.xml
 .pytest_cache/
 .ruff_cache/
 .mypy_cache/
 
 # Logs
-*.log
 logs/
+*.log
+!logs/.gitkeep
 
 # Local development
 .env.local
 .env.development.local
 .env.test.local
-.env.production.local 
+.env.production.local

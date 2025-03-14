@@ -21,6 +21,8 @@ ruff = "^0.2.1"
 mypy = "^1.8.0"
 black = "^24.1.1"
 isort = "^5.13.2"
+pre-commit = "^3.6.0"
+detect-secrets = "^1.5.0"
 
 [build-system]
 requires = ["poetry-core"]
@@ -29,10 +31,12 @@ build-backend = "poetry.core.masonry.api"
 [tool.ruff]
 line-length = 88
 target-version = "py310"
+
+[tool.ruff.lint]
 select = ["E", "F", "B", "I", "N", "UP", "PL", "RUF"]
 ignore = []
 
-[tool.ruff.isort]
+[tool.ruff.lint.isort]
 known-first-party = ["agentic_code_review"]
 
 [tool.mypy]
@@ -45,4 +49,4 @@ check_untyped_defs = true
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 python_files = ["test_*.py"]
-addopts = "-v --cov=agentic_code_review --cov-report=term-missing" 
+addopts = "-v --cov=agentic_code_review --cov-report=term-missing"
