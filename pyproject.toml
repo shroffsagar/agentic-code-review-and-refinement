@@ -1,0 +1,48 @@
+[tool.poetry]
+name = "agentic-code-review"
+version = "0.1.0"
+description = "An AI-powered system for automated code review and refinement"
+authors = ["Sagar Shroff"]
+readme = "README.md"
+packages = [{include = "agentic_code_review"}]
+
+[tool.poetry.dependencies]
+python = "^3.10"
+openai = "^1.12.0"
+PyGithub = "^2.1.1"
+pydantic = "^2.6.1"
+python-dotenv = "^1.0.1"
+rich = "^13.7.0"
+
+[tool.poetry.group.dev.dependencies]
+pytest = "^8.0.0"
+pytest-cov = "^4.1.0"
+ruff = "^0.2.1"
+mypy = "^1.8.0"
+black = "^24.1.1"
+isort = "^5.13.2"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
+
+[tool.ruff]
+line-length = 88
+target-version = "py310"
+select = ["E", "F", "B", "I", "N", "UP", "PL", "RUF"]
+ignore = []
+
+[tool.ruff.isort]
+known-first-party = ["agentic_code_review"]
+
+[tool.mypy]
+python_version = "3.10"
+warn_return_any = true
+warn_unused_configs = true
+disallow_untyped_defs = true
+check_untyped_defs = true
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+addopts = "-v --cov=agentic_code_review --cov-report=term-missing" 
