@@ -8,6 +8,15 @@ The following diagram illustrates the high-level architecture and workflow of th
 
 ![System Design](docs/assets/Design%20-%20Code%20Review%20%26%20Refinement%20Agent.png)
 
+## User Workflow
+
+1. Developer opens a Pull Request
+2. Developer manually triggers the Review Agent workflow from GitHub Actions
+3. Review Agent analyzes the PR and adds inline review comments
+4. Developer reviews the AI-generated comments and approves/rejects them
+5. Developer manually triggers the Refinement Agent workflow
+6. Refinement Agent implements approved suggestions and commits changes
+
 ## Project Development Phases
 
 ### Phase 1: Core Infrastructure Setup
@@ -44,11 +53,15 @@ The following diagram illustrates the high-level architecture and workflow of th
      - [x] Test results and logs are stored as artifacts
      - [x] Manual triggers are available for review and refinement processes
 
-### Phase 2: Basic GitHub Integration
+---
+
+### Phase 2: GitHub Integration
 - [ ] GitHub API client implementation
 - [ ] Authentication and security setup
 - [ ] PR diff retrieval functionality
-- [ ] GitHub Actions basic workflow setup
+- [ ] Review comment creation and management
+- [ ] Code commit and push capabilities
+- [ ] GitHub Actions workflow triggers
 
 **Stories:**
 1. As a developer, I want to securely interact with GitHub's API so that I can access repository data and perform operations.
@@ -58,37 +71,16 @@ The following diagram illustrates the high-level architecture and workflow of th
      - Rate limiting is properly handled
      - Error handling and retries are implemented
 
-2. As a developer, I want to retrieve PR diffs so that I can analyze code changes.
+2. As a developer, I want to manage PR comments and commits so that I can provide feedback and implement changes.
    - Acceptance Criteria:
-     - PR diff retrieval is implemented using GitHub API
-     - Diffs are properly parsed and structured
-     - File changes are correctly identified
-     - Binary files are handled appropriately
+     - Inline review comments can be created and managed
+     - Comments support markdown formatting and code snippets
+     - Code changes can be committed and pushed
+     - GitHub Actions workflows can be triggered manually
 
-### Phase 3: Review Comment System
-- [ ] Review comment posting system
-- [ ] Comment resolution tracking
-- [ ] Code commit automation
-- [ ] GitHub Actions review workflow configuration
-- [ ] Comment threading and organization
-- [ ] Review state persistence
+---
 
-**Stories:**
-1. As a code reviewer, I want to post inline review comments so that I can provide specific feedback on code changes.
-   - Acceptance Criteria:
-     - Inline comments can be posted on specific lines of code
-     - Comments support markdown formatting
-     - Comments can include code snippets
-     - Comments are properly threaded and organized
-
-2. As a developer, I want to track the status of review comments so that I can manage the review process effectively.
-   - Acceptance Criteria:
-     - Comment resolution status is tracked
-     - Resolved comments are visually distinct
-     - Review state is persisted between sessions
-     - Review progress can be monitored
-
-### Phase 4: LLM Integration
+### Phase 3: LLM Integration
 - [ ] OpenAI GPT-4 API integration
 - [ ] Prompt template management system
 - [ ] Code review prompt engineering
@@ -112,31 +104,84 @@ The following diagram illustrates the high-level architecture and workflow of th
      - Prompt effectiveness can be measured
      - Prompts follow best practices for LLM interaction
 
-### Phase 5: Agent System Development
-- [ ] Review Agent implementation
-- [ ] Refinement Agent implementation
-- [ ] Inter-agent communication system
-- [ ] Human-in-the-loop integration
-- [ ] Decision-making logic
-- [ ] State management system
-- [ ] Agent coordination workflow
+---
+
+### Phase 4: Review Agent Implementation
+- [ ] Review Agent core functionality
+- [ ] PR analysis and diff processing
+- [ ] Code review logic and rules
+- [ ] Comment generation and formatting
+- [ ] Review state management
+- [ ] GitHub Actions review workflow
 
 **Stories:**
-1. As a developer, I want to have an automated review agent that can analyze code changes.
+1. As a developer, I want an automated review agent that can analyze code changes.
    - Acceptance Criteria:
      - Review agent can analyze PR diffs
      - Agent generates meaningful review comments
      - Agent respects code style and standards
      - Agent provides actionable suggestions
 
-2. As a developer, I want to have a refinement agent that can implement approved suggestions.
+2. As a developer, I want to trigger the review agent manually for specific PRs.
+   - Acceptance Criteria:
+     - Review agent can be triggered via GitHub Actions
+     - Agent processes the specified PR
+     - Agent adds inline comments to the PR
+     - Review progress is tracked and reported
+
+---
+
+### Phase 5: Review Comment System
+- [ ] Comment resolution tracking
+- [ ] Comment state persistence
+- [ ] Comment filtering and organization
+- [ ] Review progress monitoring
+- [ ] Comment metadata management
+- [ ] Review history tracking
+
+**Stories:**
+1. As a developer, I want to track the status of review comments so that I can manage the review process effectively.
+   - Acceptance Criteria:
+     - Comment resolution status is tracked
+     - Resolved comments are visually distinct
+     - Review state is persisted between sessions
+     - Review progress can be monitored
+
+2. As a developer, I want to organize and filter review comments so that I can focus on specific aspects of the review.
+   - Acceptance Criteria:
+     - Comments can be filtered by status
+     - Comments are organized by file and type
+     - Comment metadata is preserved
+     - Review history is maintained
+
+---
+
+### Phase 6: Refinement Agent Implementation
+- [ ] Refinement Agent core functionality
+- [ ] Approved comment processing
+- [ ] Code change implementation
+- [ ] Change validation and testing
+- [ ] Commit management
+- [ ] GitHub Actions refinement workflow
+
+**Stories:**
+1. As a developer, I want a refinement agent that can implement approved suggestions.
    - Acceptance Criteria:
      - Refinement agent can apply approved changes
      - Changes are properly tested before committing
      - Agent maintains code quality standards
      - Agent handles conflicts appropriately
 
-### Phase 6: Testing and Quality Assurance
+2. As a developer, I want to trigger the refinement agent manually after reviewing comments.
+   - Acceptance Criteria:
+     - Refinement agent can be triggered via GitHub Actions
+     - Agent processes only approved comments
+     - Agent implements changes and creates commits
+     - Refinement progress is tracked and reported
+
+---
+
+### Phase 7: Testing and Quality Assurance
 - [ ] Unit test suite development
 - [ ] Integration test implementation
 - [ ] End-to-end testing
@@ -160,29 +205,7 @@ The following diagram illustrates the high-level architecture and workflow of th
      - Load tests verify system stability
      - All critical paths are tested
 
-### Phase 7: CI/CD Pipeline
-- [ ] GitHub Actions workflow automation
-- [ ] Automated testing integration
-- [ ] Deployment pipeline setup
-- [ ] Environment management
-- [ ] Secret management
-- [ ] Artifact handling
-- [ ] Monitoring and alerting
-
-**Stories:**
-1. As a developer, I want automated CI/CD workflows so that I can streamline the development process.
-   - Acceptance Criteria:
-     - GitHub Actions workflows are properly configured
-     - Automated tests run on every PR
-     - Deployment pipeline is automated
-     - Environment variables are properly managed
-
-2. As a developer, I want proper monitoring and alerting so that I can maintain system health.
-   - Acceptance Criteria:
-     - System metrics are collected and monitored
-     - Alerts are configured for critical issues
-     - Logs are properly aggregated
-     - Performance issues are detected early
+---
 
 ### Phase 8: Documentation and Maintenance
 - [ ] API documentation
@@ -207,6 +230,8 @@ The following diagram illustrates the high-level architecture and workflow of th
      - Performance optimization procedures are defined
      - Backup and recovery procedures are documented
      - System health checks are automated
+
+---
 
 ### Phase 9: Production Readiness
 - [ ] Production environment setup
@@ -234,4 +259,4 @@ The following diagram illustrates the high-level architecture and workflow of th
 
 ## Current Status
 
-The project is currently in Phase 1, focusing on setting up the core infrastructure and development environment. Each phase will be marked with completion status as the project progresses.
+The project is currently in Phase 2, focusing on GitHub integration and workflow setup. Each phase will be marked with completion status as the project progresses.
