@@ -51,3 +51,13 @@ logs/
 .env.development.local
 .env.test.local
 .env.production.local
+
+# Coverage reports
+.coverage
+htmlcov/
+
+# macOS system files
+.DS_Store
+
+# Poetry installer error logs
+poetry-installer-error-*.log
