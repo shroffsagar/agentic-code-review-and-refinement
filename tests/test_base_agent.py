@@ -3,6 +3,7 @@
 from unittest.mock import MagicMock, patch
 
 import pytest
+from github.PullRequest import PullRequest
 
 from agentic_code_review.agents.base_agent import BaseAgent
 
@@ -38,7 +39,7 @@ def test_get_pr_content_success(
 ) -> None:
     """Test successful PR content retrieval."""
     # Setup mock
-    mock_pr = MagicMock()
+    mock_pr = MagicMock(spec=PullRequest)
     mock_pr.title = "Test PR"
     mock_pr.body = "Test Description"
     mock_github_client.return_value.get_pull_request.return_value = mock_pr
@@ -47,8 +48,8 @@ def test_get_pr_content_success(
     with patch.object(base_agent, "github_client", mock_github_client.return_value):
         content = base_agent.get_pr_content()
         assert content is not None
-        assert "Test PR" in content
-        assert "Test Description" in content
+        assert content["title"] == "Test PR"
+        assert content["body"] == "Test Description"
 
 
 @patch("agentic_code_review.agents.base_agent.GitHubClient")

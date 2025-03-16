@@ -6,6 +6,7 @@ OpenAI's GPT-4 model and GitHub.
 
 import logging
 
+from github.PullRequest import PullRequest
 from openai import OpenAI  # type: ignore
 
 from agentic_code_review.github_integration import GitHubClient
@@ -37,20 +38,16 @@ class BaseAgent:
         self.pr_number = pr_number
         logger.info(f"Base agent initialized for PR #{pr_number}")
 
-    def get_pr_content(self) -> str | None:
-        """Retrieve the content of the pull request.
+    def get_pr_content(self) -> dict[str, str] | None:
+        """Get the content of a pull request.
 
         Returns:
-            str: PR content if successful, None otherwise.
+            A dictionary containing the PR title and body if found, None otherwise
         """
-        try:
-            pr = self.github_client.get_pull_request(self.repo_name, self.pr_number)
-            if pr:
-                return f"Title: {pr.title}\n\nDescription:\n{pr.body}"
-            return None
-        except Exception as e:
-            logger.error(f"Error retrieving PR content: {e!s}")
-            return None
+        pr = self.github_client.get_pull_request(self.repo_name, self.pr_number)
+        if pr and isinstance(pr, PullRequest):
+            return {"title": pr.title, "body": pr.body or ""}
+        return None
 
     def call_gpt4(self, prompt: str) -> str | None:
         """Call GPT-4 with a prompt and return the response.
