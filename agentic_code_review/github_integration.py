@@ -6,7 +6,8 @@ operations such as accessing PR content and posting comments.
 
 import logging
 
-from github import Github, PullRequest  # type: ignore
+from github import Github
+from github.PullRequest import PullRequest
 
 logger = logging.getLogger(__name__)
 
@@ -23,7 +24,7 @@ class GitHubClient:
         self.client = Github(access_token)
         logger.info("GitHub client initialized successfully")
 
-    def get_pull_request(self, repo_name: str, pr_number: int) -> PullRequest:
+    def get_pull_request(self, repo_name: str, pr_number: int) -> PullRequest | None:
         """Retrieve a pull request by repository name and PR number.
 
         Args:

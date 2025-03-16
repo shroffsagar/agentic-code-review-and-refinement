@@ -7,19 +7,6 @@ repos:
         args: [--fix]
       - id: ruff-format
 
-  # Type checking with mypy
-  - repo: https://github.com/pre-commit/mirrors-mypy
-    rev: v1.15.0
-    hooks:
-      - id: mypy
-        args: [--strict]
-        additional_dependencies:
-          - types-PyYAML
-          - types-requests
-          - types-setuptools
-          - pytest
-          - rich
-
   - repo: https://github.com/Yelp/detect-secrets
     rev: v1.5.0
     hooks:
@@ -35,9 +22,33 @@ repos:
       - id: trailing-whitespace
       - id: debug-statements
 
-  # Local hooks
+  # Local hooks using Poetry
   - repo: local
     hooks:
+      - id: ruff
+        name: Run ruff
+        entry: poetry run ruff --fix .
+        language: system
+        types: [python]
+        pass_filenames: false
+        always_run: true
+
+      - id: ruff-format
+        name: Run ruff format
+        entry: poetry run ruff format .
+        language: system
+        types: [python]
+        pass_filenames: false
+        always_run: true
+
+      - id: mypy
+        name: Run mypy
+        entry: poetry run mypy agentic_code_review
+        language: system
+        types: [python]
+        pass_filenames: false
+        always_run: true
+
       - id: pytest
         name: Run pytest
         entry: poetry run pytest

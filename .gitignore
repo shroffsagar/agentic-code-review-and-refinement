@@ -26,6 +26,7 @@ wheels/
 env/
 venv/
 ENV/
+agentic_code_review/web/.env
 
 # IDE
 .idea/
