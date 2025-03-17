@@ -35,9 +35,6 @@ class GitHubApp:
 
         self.app = Flask(__name__)
 
-        # Enable Flask debug mode
-        self.app.debug = True
-
         # Add request logger
         @self.app.before_request
         def log_request_info() -> None:
@@ -63,19 +60,6 @@ class GitHubApp:
         def webhook() -> dict[str, Any]:
             logger.info("Webhook endpoint called")
             return self._handle_webhook()
-
-        @self.app.route("/debug/events", methods=["GET"])
-        def debug_events() -> dict[str, Any]:
-            """Debug endpoint to check webhook configuration."""
-            logger.info("Debug endpoint called")
-            return {
-                "message": "Debug endpoint is working. Check logs for webhook events.",
-                "status": "success",
-            }
-
-        @self.app.route("/ping", methods=["GET"])
-        def ping() -> dict[str, str]:
-            return {"status": "alive"}
 
     def _handle_webhook(self) -> dict[str, Any]:
         """Handle incoming webhook events."""
@@ -114,10 +98,6 @@ class GitHubApp:
             if event_type in ["pull_request", "issues"] and action == "labeled":
                 logger.info("Label added event detected")
                 self._handle_labeled_event(payload)
-            elif event_type == "label" and action in ["created", "deleted"]:
-                logger.info(f"Label {action} event detected")
-                # We might want to handle label creation/deletion differently
-                pass
             else:
                 logger.info(f"Ignoring event type: {event_type} with action: {action}")
 

@@ -1,6 +1,6 @@
-"""GitHub App web package.
+"""GitHub App package.
 
-This package provides the web server implementation for the GitHub App.
+This package provides the GitHub App server implementation.
 """
 
 import logging
@@ -8,7 +8,7 @@ import logging
 from dotenv import load_dotenv
 
 from .config import setup_logging
-from .github_app import GitHubApp
+from .server import GitHubApp
 
 # Load environment variables
 load_dotenv()
