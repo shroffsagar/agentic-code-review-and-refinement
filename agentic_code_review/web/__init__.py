@@ -7,13 +7,14 @@ import logging
 
 from dotenv import load_dotenv
 
+from .config import setup_logging
 from .github_app import GitHubApp
 
 # Load environment variables
 load_dotenv()
 
 # Configure logging
-logging.basicConfig(level=logging.INFO)
+setup_logging()
 logger = logging.getLogger(__name__)
 
 
