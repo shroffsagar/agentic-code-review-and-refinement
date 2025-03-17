@@ -3,35 +3,6 @@
 This package provides the GitHub App server implementation.
 """
 
-import logging
-
-from dotenv import load_dotenv
-
-from .config import setup_logging
 from .server import GitHubApp
 
-# Load environment variables
-load_dotenv()
-
-# Configure logging
-setup_logging()
-logger = logging.getLogger(__name__)
-
-
-def run_app(host: str = "0.0.0.0", port: int = 3000) -> None:
-    """Run the GitHub App server.
-
-    Args:
-        host: The host to bind to
-        port: The port to listen on
-    """
-    try:
-        app = GitHubApp()
-        logger.info("GitHub App server initialized successfully")
-        app.run(host=host, port=port)
-    except Exception as e:
-        logger.error(f"Failed to start GitHub App server: {e}")
-        raise
-
-
-__all__ = ["GitHubApp", "run_app"]
+__all__ = ["GitHubApp"]
