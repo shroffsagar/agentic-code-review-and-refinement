@@ -18,9 +18,7 @@ def setup_logging() -> None:
 
     # Configure logging
     log_file = os.path.join(logs_dir, "github_app.log")
-    formatter = logging.Formatter(
-        "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
-    )
+    formatter = logging.Formatter("%(asctime)s - %(name)s - %(levelname)s - %(message)s")
 
     # File handler - 10MB per file, keep 5 backups
     file_handler = RotatingFileHandler(log_file, maxBytes=10485760, backupCount=5)

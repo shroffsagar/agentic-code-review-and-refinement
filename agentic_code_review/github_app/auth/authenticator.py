@@ -38,17 +38,11 @@ class GitHubAuthenticator:
         formatted_key = self._format_private_key(private_key)
         logger.info("Private key formatted")
 
-        base_url = (
-            f"https://{enterprise_hostname}/api/v3"
-            if enterprise_hostname
-            else "https://api.github.com"
-        )
+        base_url = f"https://{enterprise_hostname}/api/v3" if enterprise_hostname else "https://api.github.com"
 
         try:
             logger.info(f"Initializing GitHub App integration with App ID: {app_id}")
-            self.integration = GithubIntegration(
-                int(app_id), formatted_key, base_url=base_url
-            )
+            self.integration = GithubIntegration(int(app_id), formatted_key, base_url=base_url)
             logger.info("GitHub App integration initialized successfully")
         except Exception as e:
             logger.error(f"Failed to initialize GitHub App integration: {e}")
@@ -88,11 +82,7 @@ class GitHubAuthenticator:
             def format_key_content(match: re.Match) -> str:
                 content = match.group(1).replace("\n", "")
                 chunks = [content[i : i + 64] for i in range(0, len(content), 64)]
-                formatted = (
-                    f"{begin_marker}-----\n"
-                    + "\n".join(chunks)
-                    + f"\n{end_marker}-----"
-                )
+                formatted = f"{begin_marker}-----\n" + "\n".join(chunks) + f"\n{end_marker}-----"
                 return formatted
 
             key = re.sub(pattern, format_key_content, key, flags=re.DOTALL)
@@ -107,9 +97,7 @@ class GitHubAuthenticator:
 
         return formatted_key
 
-    def verify_webhook_signature(
-        self, payload_body: bytes, signature_header: str | None
-    ) -> bool:
+    def verify_webhook_signature(self, payload_body: bytes, signature_header: str | None) -> bool:
         """Verify the GitHub webhook signature."""
         if not signature_header:
             return False

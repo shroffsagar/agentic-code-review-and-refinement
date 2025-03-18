@@ -1,22 +1,16 @@
 """Decorators for GitHub Pull Request operations."""
 
 import functools
+import inspect
 import logging
-from collections.abc import Callable
-from typing import Any, TypeVar, cast
 
 from ..constants import IN_PROGRESS_LABEL
 from ..managers.pr_manager import PRContext
 
 logger = logging.getLogger(__name__)
 
-# Type variable for the decorator's return type
-T = TypeVar("T")
 
-
-def with_pr_state_management(
-    operation_name: str, operation_label: str, success_message: str
-) -> Callable:
+def with_pr_state_management(operation_name: str, operation_label: str, success_message: str):
     """Decorator to manage GitHub PR state throughout an operation's lifecycle.
 
     This decorator provides a consistent way to handle PR operations by managing:
@@ -31,7 +25,7 @@ def with_pr_state_management(
             operation_label=REVIEW_LABEL,
             success_message="Review completed successfully!"
         )
-        def handle_review(self, context: PRContext) -> None:
+        async def handle_review(self, context: PRContext) -> None:
             # Only need to implement the core review logic
             pass
 
@@ -44,16 +38,56 @@ def with_pr_state_management(
         Decorator function that wraps PR operations
     """
 
-    def decorator(func: Callable[..., T]) -> Callable[..., T]:
+    def decorator(func):
+        # Check if the function is async
+        is_async = inspect.iscoroutinefunction(func)
+
         @functools.wraps(func)
-        def wrapper(
-            self: Any,  # Type will be checked by the handler class
-            installation_id: int,
-            repository: dict[str, Any],
-            pr_number: int,
-            *args: Any,
-            **kwargs: Any,
-        ) -> T:
+        async def async_wrapper(self, installation_id, repository, pr_number, *args, **kwargs):
+            return await _handle_operation(
+                self,
+                func,
+                operation_name,
+                operation_label,
+                success_message,
+                installation_id,
+                repository,
+                pr_number,
+                True,
+                *args,
+                **kwargs,
+            )
+
+        @functools.wraps(func)
+        def sync_wrapper(self, installation_id, repository, pr_number, *args, **kwargs):
+            return _handle_operation(
+                self,
+                func,
+                operation_name,
+                operation_label,
+                success_message,
+                installation_id,
+                repository,
+                pr_number,
+                False,
+                *args,
+                **kwargs,
+            )
+
+        async def _handle_operation(
+            self,
+            func,
+            operation_name,
+            operation_label,
+            success_message,
+            installation_id,
+            repository,
+            pr_number,
+            is_async_wrapper,
+            *args,
+            **kwargs,
+        ):
+            """Handle the PR operation with proper state management."""
             # Initialize PR context
             context = PRContext(installation_id, repository, pr_number)
             logger.info(f"Starting {operation_name} for PR #{pr_number}")
@@ -68,16 +102,18 @@ def with_pr_state_management(
                 )
 
                 # Execute the actual operation
-                result = func(self, context, *args, **kwargs)
+                if is_async_wrapper and inspect.iscoroutinefunction(func):
+                    result = await func(self, context, *args, **kwargs)
+                else:
+                    result = func(self, context, *args, **kwargs)
+
                 logger.info(f"Completed {operation_name} for PR #{pr_number}")
                 success = True
                 return result
 
             except Exception as e:
                 # Handle any errors
-                logger.error(
-                    f"Error in {operation_name} operation for PR #{pr_number}: {e}"
-                )
+                logger.error(f"Error in {operation_name} operation for PR #{pr_number}: {e}")
                 error_msg = (
                     f"❌ An error occurred while performing "
                     f"{operation_name} on this PR:\n"
@@ -90,12 +126,11 @@ def with_pr_state_management(
 
             finally:
                 # Clean up PR state
-                self.pr_manager.manage_labels(
-                    context, remove_labels=[IN_PROGRESS_LABEL]
-                )
+                self.pr_manager.manage_labels(context, remove_labels=[IN_PROGRESS_LABEL])
                 if success:
                     self.pr_manager.post_comment(context, success_message)
 
-        return cast(Callable[..., T], wrapper)
+        # Return the appropriate wrapper based on whether the function is async
+        return async_wrapper if is_async else sync_wrapper
 
     return decorator

@@ -4,6 +4,7 @@ This module implements a GitHub App server using Flask and PyGithub,
 handling webhook events and GitHub API interactions.
 """
 
+import asyncio
 import logging
 import os
 from typing import Any
@@ -41,9 +42,9 @@ class GitHubApp:
             logger.info("⭐️ NEW REQUEST RECEIVED ⭐️")
             logger.info(f"Path: {request.path}")
             logger.info(f"Method: {request.method}")
-            logger.info(f"Headers: {dict(request.headers)}")
-            if request.data:
-                logger.info(f"Data: {request.data.decode()}")
+            # logger.info(f"Headers: {dict(request.headers)}")
+            # if request.data:
+            #     logger.info(f"Data: {request.data.decode()}")
 
         self.setup_routes()
 
@@ -65,24 +66,22 @@ class GitHubApp:
         """Handle incoming webhook events."""
         try:
             logger.info("🔔 Received webhook request")
-            logger.info("📋 Headers:")
-            for key, value in request.headers.items():
-                logger.info(f"  {key}: {value}")
+            # logger.info("📋 Headers:")
+            # for key, value in request.headers.items():
+            #     logger.info(f"  {key}: {value}")
 
             signature = request.headers.get("X-Hub-Signature-256")
             payload_data = request.get_data()
 
-            logger.info("📦 Payload data:")
-            try:
-                payload_str = payload_data.decode()
-                logger.info(f"  {payload_str}")
-            except Exception as e:
-                logger.error(f"Failed to decode payload: {e}")
+            # logger.info("📦 Payload data:")
+            # try:
+            #     payload_str = payload_data.decode()
+            #     logger.info(f"  {payload_str}")
+            # except Exception as e:
+            #     logger.error(f"Failed to decode payload: {e}")
 
             # Verify webhook signature
-            if signature is None or not self.authenticator.verify_webhook_signature(
-                payload_data, signature
-            ):
+            if signature is None or not self.authenticator.verify_webhook_signature(payload_data, signature):
                 logger.error("❌ Invalid webhook signature")
                 return {"error": "Invalid signature", "status": "error"}, 401  # type: ignore
 
@@ -122,10 +121,7 @@ class GitHubApp:
             # Get the label that was added
             label_name = payload.get("label", {}).get("name")
 
-            logger.info(
-                f"📌 Processing labeled event - PR/Issue: {pr_number}, "
-                f"Label: {label_name}"
-            )
+            logger.info(f"📌 Processing labeled event - PR/Issue: {pr_number}, Label: {label_name}")
 
             if not all([repository, pr_number, installation_id]):
                 logger.error("❌ Missing required payload information")
@@ -142,29 +138,38 @@ class GitHubApp:
             )
 
             if self.pr_manager.is_in_progress(pr_context):
-                msg = (
-                    "⏳ This PR is currently being processed. "
-                    "Please wait for the current operation to complete."
-                )
+                msg = "⏳ This PR is currently being processed. Please wait for the current operation to complete."
                 logger.info("⚠️ PR is already being processed")
                 self.pr_manager.post_comment(pr_context, msg)
                 return
 
-            # Pass to the appropriate handler based on label
-            if label_name == "agentic-review":
-                self.agent_handler.handle_review(
-                    installation_id=pr_context.installation_id,
-                    repository=pr_context.repository,
-                    pr_number=pr_context.pr_number,
-                )
-            elif label_name == "agentic-refine":
-                self.agent_handler.handle_refine(
-                    installation_id=pr_context.installation_id,
-                    repository=pr_context.repository,
-                    pr_number=pr_context.pr_number,
-                )
-            else:
-                logger.info(f"⏭️ Ignoring non-matching label: {label_name}")
+            # Create event loop for async operations
+            loop = asyncio.new_event_loop()
+            asyncio.set_event_loop(loop)
+
+            try:
+                # Pass to the appropriate handler based on label
+                if label_name == "agentic-review":
+                    loop.run_until_complete(
+                        self.agent_handler.handle_review(
+                            installation_id=pr_context.installation_id,
+                            repository=pr_context.repository,
+                            pr_number=pr_context.pr_number,
+                        )
+                    )
+                elif label_name == "agentic-refine":
+                    loop.run_until_complete(
+                        self.agent_handler.handle_refine(
+                            installation_id=pr_context.installation_id,
+                            repository=pr_context.repository,
+                            pr_number=pr_context.pr_number,
+                        )
+                    )
+                else:
+                    logger.info(f"⏭️ Ignoring non-matching label: {label_name}")
+            finally:
+                loop.close()
+
         except Exception:
             logger.exception("❌ Error handling labeled event:")
 

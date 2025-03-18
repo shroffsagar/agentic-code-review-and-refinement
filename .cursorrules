@@ -84,4 +84,5 @@
 - Document the project structure, usage instructions, and workflow details in a README file within your repository.
 - Use Sagar Shroff as author name wherever required.
 - Do not use pip to install packages directly, use poetry instead.
+- Do not manually add any dependency, always use poetry.
 - Always run the packages installed through poetry using poetry only. Do not run those packages directly without using poetry or else they might not be recognized.
