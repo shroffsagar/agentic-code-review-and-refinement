@@ -11,10 +11,10 @@ The following diagram illustrates the high-level architecture and workflow of th
 ## User Workflow
 
 1. Developer opens a Pull Request
-2. Developer manually triggers the Review Agent workflow from GitHub Actions
-3. Review Agent analyzes the PR and adds inline review comments
+2. Developer manually triggers the Review Agent workflow by assigning the PR to it using label
+3. Review Agent analyzes the PR and adds inline review comments.
 4. Developer reviews the AI-generated comments and approves/rejects them
-5. Developer manually triggers the Refinement Agent workflow
+5. Developer manually triggers the Refinement Agent workflow by assigning the PR to it using label
 6. Refinement Agent implements approved suggestions and commits changes
 
 ## Project Development Phases
@@ -66,15 +66,7 @@ The following diagram illustrates the high-level architecture and workflow of th
   - [ ] Change validation
 - [ ] Automated comment resolution after successful changes
 
-### Phase 5: Workflow Automation & Integration (Not Started)
-- [ ] GitHub Actions workflows implementation
-  - [ ] Review workflow
-  - [ ] Refinement workflow
-  - [ ] Combined workflow with manual approval step
-- [ ] Authentication and security enhancements
-- [ ] Error handling and retry mechanisms
-
-### Phase 6: Testing and Quality Assurance (In Progress)
+### Phase 5: Testing and Quality Assurance (In Progress)
 - [x] Initial testing framework setup
 - [x] Unit test suite for core components
 - [ ] Integration tests
@@ -82,7 +74,7 @@ The following diagram illustrates the high-level architecture and workflow of th
 - [ ] Performance testing
 - [ ] Security testing
 
-### Phase 7: Documentation and Production Readiness (Not Started)
+### Phase 6: Documentation and Production Readiness (Not Started)
 - [ ] API documentation
 - [ ] User guides
 - [ ] Deployment guides
