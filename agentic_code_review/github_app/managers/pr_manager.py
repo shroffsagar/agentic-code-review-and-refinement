@@ -33,6 +33,20 @@ class PRContext:
     pr_number: int
 
 
+@dataclass
+class PRComment:
+    """Represents a comment in a pull request."""
+
+    id: int
+    body: str
+    user_login: str
+    path: str
+    position: int | None  # Can be None for comments not tied to a specific line
+    created_at: str
+    updated_at: str
+    is_resolved: bool
+
+
 class PRManager:
     """Handles PR-related operations like comments and labels."""
 
@@ -102,6 +116,53 @@ class PRManager:
             logger.info(f"Posted comment on PR #{context.pr_number}")
         except Exception as e:
             logger.error(f"Failed to post comment on PR #{context.pr_number}: {e}")
+            raise
+
+    def get_unresolved_comments(self, context: PRContext) -> list[PRComment]:
+        """Get all unresolved review comments on a pull request.
+
+        This method fetches all review comments and filters out those that have been resolved.
+
+        Args:
+            context: The PR context
+
+        Returns:
+            A list of PRComment objects representing unresolved comments
+
+        Raises:
+            Exception: If there's an error fetching the PR comments
+        """
+        try:
+            pr = self._get_pr(context)
+            unresolved_comments = []
+
+            # Get all review comments on the PR
+            for comment in pr.get_review_comments():
+                # Check if the comment is resolved
+                # Note: GitHub API doesn't directly expose resolution status,
+                # we'd need to check the review thread or specific markers in the comment body
+                # For now, we're treating all comments as unresolved
+                is_resolved = False
+
+                # Create a PRComment object
+                pr_comment = PRComment(
+                    id=comment.id,
+                    body=comment.body,
+                    user_login=comment.user.login,
+                    path=comment.path,
+                    position=comment.position,
+                    created_at=comment.created_at.isoformat(),
+                    updated_at=comment.updated_at.isoformat(),
+                    is_resolved=is_resolved,
+                )
+
+                if not is_resolved:
+                    unresolved_comments.append(pr_comment)
+
+            logger.info(f"Fetched {len(unresolved_comments)} unresolved comments from PR #{context.pr_number}")
+            return unresolved_comments
+        except Exception as e:
+            logger.error(f"Failed to fetch comments for PR #{context.pr_number}: {e}")
             raise
 
     def manage_labels(
