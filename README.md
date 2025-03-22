@@ -64,20 +64,20 @@ The following diagram illustrates the high-level architecture and workflow of th
 - [x] Response validation and parsing
 
 ### Phase 4: Refinement Agent Implementation (In Progress)
+- [ ] Comment processing system
+  - [x] Retrieval of unresolved comments from PR
+  - [ ] Comment categorization and prioritization
+  - [ ] Grouping suggestions by syntactic unit
 - [ ] Refinement agent prompt design
   - [ ] Core refinement prompt template
   - [ ] Structured suggestion format
   - [ ] Function signature change detection
-- [ ] Comment processing system
-  - [ ] Retrieval of unresolved comments
-  - [ ] Comment categorization and prioritization
-  - [ ] Grouping suggestions by syntactic unit
 - [ ] Code refinement implementation
-  - [ ] Design of two-stage approach for handling signature changes
   - [ ] Tree-sitter integration for code analysis
     - [ ] Syntactic unit extraction
     - [ ] Function signature parsing
     - [ ] Dependency identification
+  - [ ] Design of two-stage approach for handling signature changes
   - [ ] Syntactic unit-based refinement
     - [ ] Unit-level change generation
     - [ ] Structural integrity validation
