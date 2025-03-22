@@ -6,7 +6,14 @@ A sophisticated AI-powered system for automated code review and refinement, inte
 
 The following diagram illustrates the high-level architecture and workflow of the Agentic Code Review and Refinement System:
 
-![System Design](docs/assets/Design%20-%20Code%20Review%20%26%20Refinement%20Agent.png)
+[High level flow](https://excalidraw.com/#room=4dd1c0e4005f7423fa9e,y147i26ttB-UIqxbYdifxw)
+![High level flow](docs/assets/Design%20-%20Code%20Review%20%26%20Refinement%20Agent.png)
+
+---
+[Sequence diagram for refinement](https://excalidraw.com/#json=5ZTVdYF8S7wBNruJcUFj3,w8Nr423cho_GauPzmjNmQw)
+![Sequence diagram - AST (using treesitter) + Model based refinement](docs/assets/Seq%20diagram%20-%20Refinement%20agent.png)
+
+
 
 ## User Workflow
 
@@ -56,12 +63,26 @@ The following diagram illustrates the high-level architecture and workflow of th
   - [x] Test PR creation and agent interaction
 - [x] Response validation and parsing
 
-### Phase 4: Refinement Agent Implementation (Not Started)
+### Phase 4: Refinement Agent Implementation (In Progress)
+- [ ] Refinement agent prompt design
+  - [ ] Core refinement prompt template
+  - [ ] Structured suggestion format
+  - [ ] Function signature change detection
 - [ ] Comment processing system
   - [ ] Retrieval of unresolved comments
   - [ ] Comment categorization and prioritization
+  - [ ] Grouping suggestions by syntactic unit
 - [ ] Code refinement implementation
-  - [ ] Context-aware code modification
+  - [ ] Design of two-stage approach for handling signature changes
+  - [ ] Tree-sitter integration for code analysis
+    - [ ] Syntactic unit extraction
+    - [ ] Function signature parsing
+    - [ ] Dependency identification
+  - [ ] Syntactic unit-based refinement
+    - [ ] Unit-level change generation
+    - [ ] Structural integrity validation
+    - [ ] Dependency update handling
+  - [ ] AST-based structural patching for applying changes
   - [ ] Test generation for code changes
   - [ ] Change validation
 - [ ] Automated comment resolution after successful changes
@@ -91,7 +112,7 @@ The following diagram illustrates the high-level architecture and workflow of th
 
 ## Current Status
 
-The project has completed Phases 1-3, establishing a fully functional Review Agent system. Key components include:
+The project has completed Phases 1-3 and is now in the early stages of Phase 4, designing the Refinement Agent. Key components include:
 
 - GitHub App infrastructure with authentication and webhook handling
 - PR state management and context handling system
@@ -103,7 +124,10 @@ The project has completed Phases 1-3, establishing a fully functional Review Age
 - End-to-end PR review process with comment posting
 
 Currently working on:
-1. Beginning implementation of the Refinement Agent (Phase 4)
-2. Expanding test coverage with integration tests
+1. Designing the Refinement Agent (Phase 4)
+   - Defining refinement prompt templates for code modification
+   - Planning the syntactic unit-based approach for more coherent changes
+   - Evaluating Tree-sitter integration for syntactic code analysis
+   - Designing the comment processing system to handle unresolved suggestions
 
-Next major milestone: Implement the Refinement Agent to automatically apply approved suggestions from code reviews.
+Next major milestone: Implementing the core Refinement Agent functionality with the ability to process unresolved review comments and make targeted code modifications.
