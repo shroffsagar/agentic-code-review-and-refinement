@@ -86,3 +86,27 @@
 - Do not manually add any dependency, always use poetry.
 - Always run the the programs using poetry. Do not run those programs directly without using poetry or else they might not be recognized.
 - Never push changes directly to the master/main branch. Always create a new branch with a descriptive name that reflects the work being done (e.g., `feature/review-agent`, `fix/github-api-integration`, `refactor/prompt-templates`) and submit a pull request for review before merging.
+
+# Development Process Guidelines
+
+## Incremental Implementation Approach
+
+- Always proceed with small, incremental steps when implementing new features
+- Present one logical component at a time for review before proceeding to the next step
+- Wait for explicit approval before moving forward with implementation
+- Label each step clearly and indicate dependencies or connections to other components
+- Discuss design considerations and alternatives before implementation
+
+## Code Quality Standards
+
+- Follow all coding guidelines specified in custom instructions
+- Maintain consistent code style and documentation standards
+- Ensure all new components have appropriate unit tests
+- Document design decisions and component interactions
+
+## Review Process
+
+- Submit small, focused changes for review
+- Explain the rationale behind implementation choices
+- Highlight any potential issues or alternative approaches
+- Respond to feedback and incorporate suggestions
