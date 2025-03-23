@@ -179,11 +179,7 @@ class AgentHandler:
 
         # Log details for each file being reviewed
         for file_to_review in files_to_review:
-            logger.info(
-                f"File prepared for review: {file_to_review.file_path} "
-                f"(Status: {file_to_review.file.status}, "
-                f"Is Test: {file_to_review.is_test_file})"
-            )
+            logger.info(f"File prepared for review: {file_to_review.file_path} (Status: {file_to_review.file.status}, Is Test: {file_to_review.is_test_file})")
 
         logger.info(f"Prepared {len(files_to_review)} files for review")
 

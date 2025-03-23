@@ -32,21 +32,14 @@ class ProcessedComment:
     @property
     def is_actionable(self) -> bool:
         """Determine if this comment contains an actionable suggestion."""
-        return (
-            self.suggestion is not None
-            and len(self.suggestion.strip()) > 0
-            and self.file_path is not None
-            and self.line_number is not None
-        )
+        return self.suggestion is not None and len(self.suggestion.strip()) > 0 and self.file_path is not None and self.line_number is not None
 
 
 class CommentProcessor:
     """Processes PR comments to prepare them for code refinement."""
 
     # Regular expressions for parsing review comment format
-    CATEGORY_SEVERITY_PATTERN = re.compile(
-        r"(Quality|Performance|Security|Testing|Maintainability|Coverage) Issue - (High|Medium|Low) Severity"
-    )
+    CATEGORY_SEVERITY_PATTERN = re.compile(r"(Quality|Performance|Security|Testing|Maintainability|Coverage) Issue - (High|Medium|Low) Severity")
     LOCATION_PATTERN = re.compile(r"Location: \[([^:\]]+):(\d+)\]")
     DESCRIPTION_PATTERN = re.compile(r"Description:\s*(.*?)(?=\n\nSuggestion:|\Z)", re.DOTALL)
     SUGGESTION_PATTERN = re.compile(r"Suggestion:\s*(.*?)(?=\Z)", re.DOTALL)
@@ -59,9 +52,7 @@ class CommentProcessor:
         """
         self.pr_manager = pr_manager
 
-    def _parse_comment_body(
-        self, body: str
-    ) -> tuple[str | None, str | None, str | None, int | None, str | None, str | None]:
+    def _parse_comment_body(self, body: str) -> tuple[str | None, str | None, str | None, int | None, str | None, str | None]:
         """Parse a review comment body to extract structured information.
 
         Args:
@@ -126,9 +117,7 @@ class CommentProcessor:
             processed_comments = []
             for comment in raw_comments:
                 # Parse the structured comment body
-                category, severity, file_path, line_number, description, suggestion = self._parse_comment_body(
-                    comment.body
-                )
+                category, severity, file_path, line_number, description, suggestion = self._parse_comment_body(comment.body)
 
                 # Use the parsed file path and line number if available, otherwise fall back to GitHub's data
                 file_path = file_path or comment.path

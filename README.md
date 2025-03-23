@@ -64,24 +64,27 @@ The following diagram illustrates the high-level architecture and workflow of th
 - [x] Response validation and parsing
 
 ### Phase 4: Refinement Agent Implementation (In Progress)
-- [ ] Comment processing system
+- [ ] Code Analysis Foundation
   - [x] Retrieval of unresolved comments from PR
-  - [ ] Comment categorization and prioritization
-  - [ ] Grouping suggestions by syntactic unit
+  - [ ] Tree-sitter integration as core utility
+    - [ ] Parser implementation for supported languages
+    - [ ] Syntactic unit extraction (functions, classes, blocks)
+    - [ ] Code structure representation
+    - [ ] Function signature parsing
+- [ ] Comment processing system
+  - [ ] Grouping approved comments by file
+  - [ ] Associating comments with syntactic units using Tree-sitter
+  - [ ] Determining implementation order for changes
 - [ ] Refinement agent prompt design
   - [ ] Core refinement prompt template
   - [ ] Structured suggestion format
-  - [ ] Function signature change detection
+  - [ ] Context-enriched prompts using Tree-sitter analysis
 - [ ] Code refinement implementation
-  - [ ] Tree-sitter integration for code analysis
-    - [ ] Syntactic unit extraction
-    - [ ] Function signature parsing
-    - [ ] Dependency identification
-  - [ ] Design of two-stage approach for handling signature changes
-  - [ ] Syntactic unit-based refinement
+  - [ ] Syntactic unit-based refinement approach
     - [ ] Unit-level change generation
     - [ ] Structural integrity validation
     - [ ] Dependency update handling
+  - [ ] Two-stage approach for handling signature changes
   - [ ] AST-based structural patching for applying changes
   - [ ] Test generation for code changes
   - [ ] Change validation
@@ -117,9 +120,9 @@ The project has completed Phases 1-3 and is now in the early stages of Phase 4, 
 
 Currently working on:
 1. Designing the Refinement Agent (Phase 4)
+   - Implementing Tree-sitter integration as a foundational component
+   - Building a robust code analysis system for syntactic understanding
    - Defining refinement prompt templates for code modification
-   - Planning the syntactic unit-based approach for more coherent changes
-   - Evaluating Tree-sitter integration for syntactic code analysis
-   - Designing the comment processing system to handle unresolved suggestions
+   - Creating a unified approach to process comments and perform structured code changes
 
-Next major milestone: Implementing the core Refinement Agent functionality with the ability to process unresolved review comments and make targeted code modifications.
+Next major milestone: Implementing the core Refinement Agent functionality with the ability to process approved review comments and make targeted code modifications through Tree-sitter based understanding.
