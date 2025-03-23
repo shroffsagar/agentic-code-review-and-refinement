@@ -161,12 +161,8 @@ Replace the list with a dictionary for O(1) lookups."""
     def test_group_comments_by_file(self):
         """Test grouping comments by file."""
         # Create ProcessedComment objects for testing
-        comment1 = PRComment(
-            id=1, body="", user_login="", path="", position=None, created_at="", updated_at="", is_resolved=False
-        )
-        comment2 = PRComment(
-            id=2, body="", user_login="", path="", position=None, created_at="", updated_at="", is_resolved=False
-        )
+        comment1 = PRComment(id=1, body="", user_login="", path="", position=None, created_at="", updated_at="", is_resolved=False)
+        comment2 = PRComment(id=2, body="", user_login="", path="", position=None, created_at="", updated_at="", is_resolved=False)
 
         processed_comments = [
             ProcessedComment(
@@ -205,9 +201,7 @@ Replace the list with a dictionary for O(1) lookups."""
     def test_comment_is_actionable(self):
         """Test the is_actionable property of ProcessedComment."""
         # Valid comment with all required fields
-        valid_comment = PRComment(
-            id=1, body="", user_login="", path="", position=None, created_at="", updated_at="", is_resolved=False
-        )
+        valid_comment = PRComment(id=1, body="", user_login="", path="", position=None, created_at="", updated_at="", is_resolved=False)
         processed_valid = ProcessedComment(
             comment=valid_comment,
             file_path="src/main.py",
