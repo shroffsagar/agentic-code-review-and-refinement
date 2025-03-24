@@ -66,11 +66,14 @@ The following diagram illustrates the high-level architecture and workflow of th
 ### Phase 4: Refinement Agent Implementation (In Progress)
 - [ ] Code Analysis Foundation
   - [x] Retrieval of unresolved comments from PR
-  - [ ] Tree-sitter integration as core utility
-    - [ ] Parser implementation for supported languages
-    - [ ] Syntactic unit extraction (functions, classes, blocks)
-    - [ ] Code structure representation
-    - [ ] Function signature parsing
+  - [x] Tree-sitter integration as core utility
+  - [x] Parser implementation for supported languages
+    - [x] Python parser implementation
+    - [x] JavaScript/TypeScript parser implementation
+    - [x] Java parser implementation
+  - [x] Syntactic unit extraction (functions, classes, blocks)
+  - [ ] Code structure representation
+  - [ ] Function signature parsing
 - [ ] Comment processing system
   - [ ] Grouping approved comments by file
   - [ ] Associating comments with syntactic units using Tree-sitter
