@@ -6,11 +6,11 @@ handling webhook events and GitHub API interactions.
 
 import asyncio
 import logging
-import os
 from typing import Any
 
 from flask import Flask, request
 
+from agentic_code_review.config import settings
 from .auth.authenticator import GitHubAuthenticator
 from .handlers.agent_handler import AgentHandler
 from .managers.pr_manager import PRContext, PRManager
@@ -25,10 +25,10 @@ class GitHubApp:
     def __init__(self) -> None:
         """Initialize the GitHub App server."""
         self.authenticator = GitHubAuthenticator(
-            app_id=os.environ["GITHUB_APP_ID"],
-            private_key=os.environ["GITHUB_PRIVATE_KEY"],
-            webhook_secret=os.environ["GITHUB_WEBHOOK_SECRET"],
-            enterprise_hostname=os.getenv("GITHUB_ENTERPRISE_HOSTNAME"),
+            app_id=settings.GITHUB_APP_ID,
+            private_key=settings.GITHUB_PRIVATE_KEY,
+            webhook_secret=settings.GITHUB_WEBHOOK_SECRET,
+            enterprise_hostname=settings.GITHUB_ENTERPRISE_URL,
         )
 
         self.pr_manager = PRManager(self.authenticator)

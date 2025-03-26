@@ -13,8 +13,6 @@ The following diagram illustrates the high-level architecture and workflow of th
 [Sequence diagram for refinement](https://excalidraw.com/#json=5ZTVdYF8S7wBNruJcUFj3,w8Nr423cho_GauPzmjNmQw)
 ![Sequence diagram - AST (using treesitter) + Model based refinement](docs/assets/Seq%20diagram%20-%20Refinement%20agent.png)
 
-
-
 ## User Workflow
 
 1. Developer opens a Pull Request
@@ -27,105 +25,110 @@ The following diagram illustrates the high-level architecture and workflow of th
 ## Project Development Phases
 
 ### Phase 1: Core Infrastructure Setup (Completed)
-- [x] Project structure initialization
-- [x] Development environment configuration
-- [x] Dependency management setup with `Poetry`
-- [x] Code quality tools integration (Ruff)
-- [x] Type hinting and documentation standards
-- [x] Testing framework setup with pytest
-- [x] Logging system implementation
-- [x] Pre-commit hooks for automated quality checks
+- [x] Project structure and development environment
+- [x] Dependency management with Poetry
+- [x] Code quality tools and standards
+- [x] Testing framework and logging
+- [x] Pre-commit hooks
 
 ### Phase 2: GitHub Integration & LLM Infrastructure (Completed)
-- [x] Basic GitHub API integration for PR access
-  - [x] GitHub App setup and authentication
-  - [x] Webhook handling and event processing
-  - [x] PR state management and context handling
-- [x] Agent infrastructure implementation:
-  - [x] Base agent handler structure
-  - [x] PR manager for GitHub operations
-  - [x] Decorator-based state management
-  - [x] Configuration management
-- [x] Basic error handling and logging
-- [x] Core LLM Infrastructure
-  - [x] OpenAI GPT-4 client setup with secure authentication
-  - [x] Review comment structure definition
-  - [x] Basic prompt templates for code review
+- [x] GitHub App setup and authentication
+- [x] Webhook handling and PR management
+- [x] Agent infrastructure and state management
+- [x] LLM integration with GPT-4
+- [x] Review comment structure and templates
 
 ### Phase 3: Review Agent Implementation (Completed)
-- [x] LLM-based code review system
-  - [x] Code diff analysis architecture
-  - [x] Context-aware prompt generation
-  - [x] Structured review comment formatting
-- [x] Review process implementation
-  - [x] PR content analysis
-  - [x] Comment posting system
-  - [x] Test PR creation and agent interaction
+- [x] Code review system with LLM
+- [x] PR analysis and comment posting
 - [x] Response validation and parsing
+- [x] Test PR creation and validation
 
-### Phase 4: Refinement Agent Implementation (In Progress)
-- [ ] Code Analysis Foundation
-  - [x] Retrieval of unresolved comments from PR
-  - [x] Tree-sitter integration as core utility
-  - [x] Parser implementation for supported languages
-    - [x] Python parser implementation
-    - [x] JavaScript/TypeScript parser implementation
-    - [x] Java parser implementation
-  - [x] Syntactic unit extraction (functions, classes, blocks)
-  - [ ] Code structure representation
-  - [ ] Function signature parsing
-- [ ] Comment processing system
-  - [ ] Grouping approved comments by file
-  - [ ] Associating comments with syntactic units using Tree-sitter
-  - [ ] Determining implementation order for changes
-- [ ] Refinement agent prompt design
-  - [ ] Core refinement prompt template
-  - [ ] Structured suggestion format
-  - [ ] Context-enriched prompts using Tree-sitter analysis
-- [ ] Code refinement implementation
-  - [ ] Syntactic unit-based refinement approach
-    - [ ] Unit-level change generation
-    - [ ] Structural integrity validation
-    - [ ] Dependency update handling
-  - [ ] Two-stage approach for handling signature changes
-  - [ ] AST-based structural patching for applying changes
-  - [ ] Test generation for code changes
-  - [ ] Change validation
-- [ ] Automated comment resolution after successful changes
+### Phase 4: Refinement Agent Implementation (Completed)
+- [x] Code Analysis Foundation
+  - [x] Tree-sitter-graph integration
+  - [x] Graph-based code structure
+  - [x] Language-agnostic analysis
+  - [x] Comment processing system
+- [x] Refinement Agent Core
+  - [x] LLM Integration
+    - [x] Code refinement prompts
+    - [x] Change validation
+    - [x] Test generation
+  - [x] Graph-based code refinement
+  - [x] Change generation and validation
+  - [x] Test generation
+  - [x] Comment resolution
+- [x] Webhook Integration
+  - [x] Event handling for refinement
+  - [x] State management
+  - [x] Error handling and logging
+- [x] Advanced Features
+  - [x] Robust node tracking with stable references
+  - [x] Comprehensive code context analysis
+  - [x] Signature change handling
+  - [x] Multi-level validation system
+  - [x] Graceful error recovery
 
 ### Phase 5: Testing and Quality Assurance (In Progress)
-- [x] Initial testing framework setup
-- [x] Unit test suite for core components
-- [ ] Integration tests
-- [ ] End-to-end testing
-- [ ] Performance testing
-- [ ] Security testing
+- [x] Testing framework setup
+- [x] Core component tests
+- [ ] Integration and E2E tests
+- [ ] Performance and security testing
 
 ### Phase 6: Documentation and Production Readiness (Not Started)
 - [ ] API documentation
-- [ ] User guides
-- [ ] Deployment guides
-- [ ] Monitoring setup
-- [ ] Production environment configuration
+- [ ] User and deployment guides
+- [ ] Monitoring and production setup
 
 ## Current Status
 
-The project has completed Phases 1-3 and is now in the early stages of Phase 4, designing the Refinement Agent. Key components include:
+The project has completed Phases 1-4, with all core components implemented and integrated. Key achievements include:
 
-- GitHub App infrastructure with authentication and webhook handling
-- PR state management and context handling system
-- Base agent structure for review operations
-- Decorator-based operation management
-- Logging and configuration systems
-- LLM integration with OpenAI's GPT-4
-- Structured review comment formatting
-- End-to-end PR review process with comment posting
+- Complete GitHub App integration with webhook handling and PR management
+- Review Agent with structured comment generation and validation
+- Refinement Agent with tree-sitter-graph based code analysis and modification
+- LLM integration for both review and refinement operations
+- Automated workflow triggered by PR labels
+- Robust error handling and validation systems
+- Advanced code context analysis and signature change management
 
 Currently working on:
-1. Designing the Refinement Agent (Phase 4)
-   - Implementing Tree-sitter integration as a foundational component
-   - Building a robust code analysis system for syntactic understanding
-   - Defining refinement prompt templates for code modification
-   - Creating a unified approach to process comments and perform structured code changes
+1. Testing and Quality Assurance (Phase 5)
+   - Implementing integration tests
+   - Setting up E2E test scenarios
+   - Performance optimization
+   - Security testing
 
-Next major milestone: Implementing the core Refinement Agent functionality with the ability to process approved review comments and make targeted code modifications through Tree-sitter based understanding.
+Next major milestone: Completing the testing phase with comprehensive integration and E2E tests to ensure the reliability and performance of the entire system.
+
+## Implementation Details
+
+### Code Analysis System
+- Tree-sitter based parsing with stable node references
+- Graph-based code structure analysis
+- Language-agnostic code analysis
+- Robust node validation and tracking
+- Comprehensive context gathering
+
+### Refinement Agent
+- Intelligent comment grouping by code context
+- Multi-level validation of code changes
+- Signature change detection and handling
+- Graceful error recovery and logging
+- Automated comment resolution
+
+### Error Handling
+- Comprehensive error logging
+- Graceful degradation
+- Validation at multiple levels
+- Clear error messages and recovery paths
+- Transaction-like change management
+
+## Contributing
+
+Please read [CONTRIBUTING.md](CONTRIBUTING.md) for details on our code of conduct and the process for submitting pull requests.
+
+## License
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.

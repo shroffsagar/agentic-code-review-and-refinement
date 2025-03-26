@@ -6,6 +6,7 @@ from collections.abc import Generator
 
 import pytest
 
+from agentic_code_review.config import settings
 from agentic_code_review.utils.logging import setup_logging
 
 
@@ -23,8 +24,16 @@ def setup_test_logging() -> Generator[None, None, None]:
 def test_env() -> Generator[dict[str, str], None, None]:
     """Set up test environment variables."""
     env_vars = {
-        "GITHUB_TOKEN": "test_token",  # pragma: allowlist secret
-        "OPENAI_API_KEY": "test_key",  # pragma: allowlist secret
+        "ACR_GITHUB_TOKEN": "test_token",  # pragma: allowlist secret
+        "ACR_LLM_API_KEY": "test_key",  # pragma: allowlist secret
+        "ACR_LLM_MODEL": "gpt-4-turbo-preview",
+        "ACR_LLM_TEMPERATURE": "0.0",
+        "ACR_LOG_LEVEL": "DEBUG",
+        "ACR_PORT": "3000",
+        "ACR_GITHUB_APP_ID": "12345",
+        "ACR_GITHUB_PRIVATE_KEY": "test_key",  # pragma: allowlist secret
+        "ACR_GITHUB_WEBHOOK_SECRET": "test_secret",  # pragma: allowlist secret
+        "ACR_GITHUB_ENTERPRISE_URL": "https://github.com",
     }
     # Store original env vars
     original_env = {k: os.environ.get(k, "") for k in env_vars}

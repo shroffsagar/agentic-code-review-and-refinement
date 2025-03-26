@@ -2,6 +2,10 @@
 
 import logging
 
+from ...code_analysis.code_analyzer import CodeAnalyzer
+from ...code_analysis.language_config import LanguageConfig
+from ...llm_refiner.llm_client import LLMClient
+from ...llm_refiner.refinement_agent import RefinementAgent
 from ...llm_reviewer import LLMReviewer, ReviewComment
 from ...models import FileToReview
 from ..constants import REFINE_LABEL, REVIEW_LABEL
@@ -18,6 +22,17 @@ class AgentHandler:
         """Initialize the agent handler."""
         self.pr_manager = pr_manager
         self.reviewer = LLMReviewer()
+        
+        # Initialize refinement components
+        self.llm_client = LLMClient()
+        self.code_analyzer = CodeAnalyzer()
+        self.language_config = LanguageConfig()
+        self.refinement_agent = RefinementAgent(
+            pr_manager=pr_manager,
+            llm_client=self.llm_client,
+            code_analyzer=self.code_analyzer,
+            language_config=self.language_config,
+        )
 
     def _should_review_file(self, file: PRFile) -> bool:
         """Determine if a file should be reviewed.
@@ -214,11 +229,18 @@ class AgentHandler:
         This method:
         1. Retrieves review comments from the PR
         2. Filters out resolved comments
-        3. Uses an LLM to implement suggested changes
+        3. Uses RefinementAgent to implement suggested changes
         4. Commits the changes to the PR
 
         Args:
             context: The PR context
         """
-        # TODO: Implement refinement logic
-        pass
+        logger.info(f"Starting code refinement for PR #{context.pr_number}")
+
+        try:
+            # Process PR using refinement agent
+            await self.refinement_agent.process_pr(context.pr_number)
+            logger.info(f"Successfully completed refinement for PR #{context.pr_number}")
+        except Exception as e:
+            logger.error(f"Failed to refine code: {e}")
+            raise Exception(f"Failed to refine code: {e}") from e
