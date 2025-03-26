@@ -131,3 +131,21 @@ class GitHubAuthenticator:
         except Exception as e:
             logger.error(f"Error getting installation client: {e}")
             raise
+
+    def get_token(self) -> str:
+        """Get an access token for API calls.
+        
+        Note: This is a simplified implementation for development purposes.
+        In production, you should manage tokens properly.
+        
+        Returns:
+            str: The access token
+        """
+        try:
+            logger.info("Getting GitHub token from environment...")
+            # For initial testing, using the LLM_API_KEY instead of proper token management
+            # In production, you'd want to use proper installation tokens
+            return settings.GITHUB_WEBHOOK_SECRET
+        except Exception as e:
+            logger.error(f"Error getting token: {e}")
+            raise

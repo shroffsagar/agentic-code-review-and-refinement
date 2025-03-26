@@ -1,5 +1,7 @@
 """Prompt templates for code refinement."""
 
+from langchain_core.prompts import PromptTemplate
+
 CODE_REFINEMENT_TEMPLATE = """You are an expert software engineer tasked with implementing code improvements based on review suggestions.
 Your job is to carefully analyze each suggestion and modify the code accordingly, following best practices.
 
@@ -40,8 +42,18 @@ Your response MUST be valid JSON conforming to the following schema:
   "unit_start_line": line_number_where_unit_begins,
   "unit_end_line": line_number_where_unit_ends,
   "modified_code": "The modified code region with all accepted changes implemented",
-  "implemented_suggestions": [{"suggestion_id": "ID from the input", "location": "file:line"}],
-  "skipped_suggestions": [{"suggestion_id": "ID from the input", "reason": "Brief reason"}],
+  "implemented_suggestions": [
+    {
+      "suggestion_id": "ID from the input",
+      "location": "file:line"
+    }
+  ],
+  "skipped_suggestions": [
+    {
+      "suggestion_id": "ID from the input",
+      "reason": "Brief reason"
+    }
+  ],
   "modified_signatures": [
     {
       "function_name": "Name of function",
@@ -53,3 +65,9 @@ Your response MUST be valid JSON conforming to the following schema:
 }
 
 Note: Your changes should only affect the provided code region. Maintain the existing code style and formatting patterns."""
+
+# Create PromptTemplate instance
+refinement_prompt = PromptTemplate(
+    input_variables=["file_path", "original_code", "suggestions", "additional_context"],
+    template=CODE_REFINEMENT_TEMPLATE,
+)

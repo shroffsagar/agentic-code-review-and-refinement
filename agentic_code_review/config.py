@@ -4,10 +4,13 @@ This module contains all configuration settings using Pydantic for type-safe
 configuration management.
 """
 
+import logging
 from typing import Optional
 
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
+# Set up logging
+logger = logging.getLogger(__name__)
 
 class Settings(BaseSettings):
     """Application settings.
@@ -39,8 +42,25 @@ class Settings(BaseSettings):
 
     model_config = SettingsConfigDict(
         case_sensitive=False,
+        env_file='.env',
+        env_file_encoding='utf-8',
+        extra='ignore',
     )
 
+    def __init__(self, **kwargs):
+        """Initialize settings with debug logging."""
+        logger.info("Initializing Settings...")
+        try:
+            super().__init__(**kwargs)
+            logger.info("Settings initialized successfully")
+        except Exception as e:
+            logger.error(f"Error initializing Settings: {str(e)}")
+            raise
 
 # Create global settings instance
-settings = Settings()
+try:
+    settings = Settings()
+    logger.info("Global settings instance created successfully")
+except Exception as e:
+    logger.error(f"Error creating global settings instance: {str(e)}")
+    raise

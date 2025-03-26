@@ -7,7 +7,7 @@ from typing import NoReturn
 import uvicorn
 
 from agentic_code_review.config import settings
-from agentic_code_review.github_app.server import app
+from agentic_code_review.github_app.server import GitHubApp
 from agentic_code_review.utils.logging import setup_logging
 
 logger = logging.getLogger(__name__)
@@ -21,18 +21,16 @@ def run_app() -> NoReturn:
 
     # Log startup information
     logger.info("Starting GitHub App server...")
-    logger.info("Environment: %s", settings.ENVIRONMENT)
     logger.info("Host: %s", settings.HOST)
     logger.info("Port: %d", settings.PORT)
     logger.info("Debug mode: %s", "enabled" if settings.DEBUG else "disabled")
 
-    # Run the server
-    uvicorn.run(
-        app,
+    # Create and run the app
+    github_app = GitHubApp()
+    github_app.app.run(
         host=settings.HOST,
         port=settings.PORT,
-        log_level=log_level.lower(),
-        debug=settings.DEBUG,
+        debug=settings.DEBUG
     )
 
 

@@ -8,13 +8,12 @@ import logging
 from dataclasses import dataclass
 from typing import Optional
 
-from github import Github, PullRequest, Repository
-from github.PullRequestReviewComment import PullRequestReviewComment
+from github import Github, PullRequest, Repository, PullRequestComment
 
-from ..code_analysis.code_analyzer import CodeAnalyzer
-from ..code_analysis.language_config import LanguageRegistry
-from ..github_app.authenticator import GitHubAuthenticator
-from ..github_app.models import PRComment, PRContext
+from ...code_analysis.code_analyzer import CodeAnalyzer
+from ...code_analysis.language_config import LanguageRegistry
+from ..auth.authenticator import GitHubAuthenticator
+from ..models import PRComment, PRContext
 
 logger = logging.getLogger(__name__)
 
@@ -38,8 +37,32 @@ class PRManager:
             authenticator: The GitHub authenticator to use
         """
         self.authenticator = authenticator
-        self.github = Github(authenticator.get_token())
+        # We'll get installation-specific clients as needed instead of a global client
         self.language_registry = LanguageRegistry()
+        # Cache for installation clients
+        self._installation_clients = {}
+
+    def _get_github_client(self, context: PRContext):
+        """Get a GitHub client for the installation.
+
+        Args:
+            context: The PR context containing installation ID
+
+        Returns:
+            A GitHub client for the installation
+        """
+        # Cache the client to avoid repeated authentication
+        if context.installation_id not in self._installation_clients:
+            try:
+                logger.info(f"Getting GitHub client for installation {context.installation_id}")
+                self._installation_clients[context.installation_id] = self.authenticator.get_installation_client(
+                    context.installation_id
+                )
+            except Exception as e:
+                logger.error(f"Failed to get GitHub client for installation {context.installation_id}: {e}")
+                raise
+        
+        return self._installation_clients[context.installation_id]
 
     def get_pr(self, context: PRContext) -> Optional[PullRequest]:
         """Get a pull request by its context.
@@ -51,7 +74,8 @@ class PRManager:
             The pull request if found, None otherwise
         """
         try:
-            repo = self.github.get_repo(context.repo)
+            github = self._get_github_client(context)
+            repo = github.get_repo(context.repo)
             return repo.get_pull(context.pr_number)
         except Exception as e:
             logger.error(f"Failed to get PR #{context.pr_number}: {e}")
@@ -158,7 +182,7 @@ class PRManager:
 
         return processed_comments
 
-    def _convert_to_pr_comment(self, comment: PullRequestReviewComment) -> PRComment:
+    def _convert_to_pr_comment(self, comment: PullRequestComment) -> PRComment:
         """Convert a GitHub review comment to our PRComment model.
 
         Args:

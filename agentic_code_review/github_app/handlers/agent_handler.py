@@ -3,7 +3,7 @@
 import logging
 
 from ...code_analysis.code_analyzer import CodeAnalyzer
-from ...code_analysis.language_config import LanguageConfig
+from ...code_analysis.language_config import LanguageRegistry
 from ...llm_refiner.llm_client import LLMClient
 from ...llm_refiner.refinement_agent import RefinementAgent
 from ...llm_reviewer import LLMReviewer, ReviewComment
@@ -25,13 +25,25 @@ class AgentHandler:
 
         # Initialize refinement components
         self.llm_client = LLMClient()
-        self.code_analyzer = CodeAnalyzer()
-        self.language_config = LanguageConfig()
+        
+        # Initialize language registry and get a default language (Python)
+        self.language_registry = LanguageRegistry()
+        default_language = self.language_registry.get_language("python")
+        
+        # Initialize code analyzer with the default language
+        if default_language:
+            self.code_analyzer = CodeAnalyzer(default_language)
+            logger.info("Initialized CodeAnalyzer with Python language support")
+        else:
+            # Fallback case - we should never hit this in practice if the language registry is properly configured
+            logger.error("Failed to initialize CodeAnalyzer: Python language not available")
+            raise RuntimeError("Failed to initialize CodeAnalyzer: Python language not available")
+            
         self.refinement_agent = RefinementAgent(
             pr_manager=pr_manager,
             llm_client=self.llm_client,
             code_analyzer=self.code_analyzer,
-            language_config=self.language_config,
+            language_registry=self.language_registry,
         )
 
     def _should_review_file(self, file: PRFile) -> bool:

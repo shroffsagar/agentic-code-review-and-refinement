@@ -1,6 +1,6 @@
 """Manager for GitHub PR operations."""
 
-from agentic_code_review.github_app.authenticator import GitHubAuthenticator
+from agentic_code_review.github_app.auth.authenticator import GitHubAuthenticator
 from agentic_code_review.github_app.models import PRComment
 
 

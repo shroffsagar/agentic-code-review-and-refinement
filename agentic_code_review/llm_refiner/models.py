@@ -1,42 +1,46 @@
 """Models for refinement agent responses."""
 
-from dataclasses import dataclass
+from typing import List
+
+from pydantic import BaseModel, Field
 
 
-@dataclass
-class ImplementedSuggestion:
+class ImplementedSuggestion(BaseModel):
     """A suggestion that was successfully implemented."""
 
-    suggestion_id: str
-    location: str
+    suggestion_id: str = Field(description="Unique identifier of the suggestion")
+    location: str = Field(description="File and line number where the change was made")
 
 
-@dataclass
-class SkippedSuggestion:
+class SkippedSuggestion(BaseModel):
     """A suggestion that was skipped during implementation."""
 
-    suggestion_id: str
-    reason: str
+    suggestion_id: str = Field(description="Unique identifier of the suggestion")
+    reason: str = Field(description="Reason why the suggestion was skipped")
 
 
-@dataclass
-class ModifiedSignature:
+class ModifiedSignature(BaseModel):
     """A function signature that was modified."""
 
-    function_name: str
-    original_signature: str
-    new_signature: str
-    location: str
+    function_name: str = Field(description="Name of the function that was modified")
+    original_signature: str = Field(description="Original function signature")
+    new_signature: str = Field(description="New function signature")
+    location: str = Field(description="File and line number where the signature was modified")
 
 
-@dataclass
-class RefinementResponse:
+class RefinementResponse(BaseModel):
     """Structured response from the refinement agent."""
 
-    function_name: str
-    unit_start_line: int
-    unit_end_line: int
-    modified_code: str
-    implemented_suggestions: list[ImplementedSuggestion]
-    skipped_suggestions: list[SkippedSuggestion]
-    modified_signatures: list[ModifiedSignature]
+    function_name: str = Field(description="Name of the function or class that was modified")
+    unit_start_line: int = Field(description="Line number where the unit begins")
+    unit_end_line: int = Field(description="Line number where the unit ends")
+    modified_code: str = Field(description="The modified code region with all accepted changes implemented")
+    implemented_suggestions: List[ImplementedSuggestion] = Field(
+        description="List of suggestions that were successfully implemented"
+    )
+    skipped_suggestions: List[SkippedSuggestion] = Field(
+        description="List of suggestions that were skipped during implementation"
+    )
+    modified_signatures: List[ModifiedSignature] = Field(
+        description="List of function signatures that were modified"
+    )
