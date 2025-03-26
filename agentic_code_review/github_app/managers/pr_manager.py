@@ -6,15 +6,15 @@ including comment management and code analysis.
 
 import logging
 from dataclasses import dataclass
-from typing import Dict, List, Optional, Set
+from typing import Optional
 
 from github import Github, PullRequest, Repository
 from github.PullRequestReviewComment import PullRequestReviewComment
 
 from ..code_analysis.code_analyzer import CodeAnalyzer
 from ..code_analysis.language_config import LanguageRegistry
-from ..github_app.models import PRComment, PRContext
 from ..github_app.authenticator import GitHubAuthenticator
+from ..github_app.models import PRComment, PRContext
 
 logger = logging.getLogger(__name__)
 
@@ -78,7 +78,7 @@ class PRManager:
             logger.error(f"Failed to get content of {path}: {e}")
             return None
 
-    def get_unresolved_comments(self, context: PRContext) -> List[PRComment]:
+    def get_unresolved_comments(self, context: PRContext) -> list[PRComment]:
         """Get all unresolved review comments on a pull request.
 
         Args:
@@ -99,7 +99,7 @@ class PRManager:
                     comments.append(self._convert_to_pr_comment(comment))
 
         # Group comments by file
-        file_comments: Dict[str, List[PRComment]] = {}
+        file_comments: dict[str, list[PRComment]] = {}
         for comment in comments:
             if comment.path not in file_comments:
                 file_comments[comment.path] = []
@@ -135,7 +135,7 @@ class PRManager:
                     # Find the code node at the comment's position
                     code_node = code_analyzer.find_node_at_position(
                         comment.line_number - 1,  # Convert to 0-based
-                        comment.column_number - 1
+                        comment.column_number - 1,
                     )
 
                     if code_node:
@@ -181,7 +181,7 @@ class PRManager:
             code_context=None,  # Will be populated later
         )
 
-    def _get_code_context(self, context_nodes: List["CodeNode"], content: str) -> str:
+    def _get_code_context(self, context_nodes: list["CodeNode"], content: str) -> str:
         """Get the code context from a list of context nodes.
 
         Args:
@@ -253,7 +253,7 @@ class PRManager:
             logger.error(f"Failed to post comment: {e}")
             return None
 
-    def manage_labels(self, context: PRContext, labels: Set[str]) -> bool:
+    def manage_labels(self, context: PRContext, labels: set[str]) -> bool:
         """Manage labels on a pull request.
 
         Args:

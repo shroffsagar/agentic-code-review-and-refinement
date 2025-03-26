@@ -1,5 +1,5 @@
 """Code analysis package for the agentic code review system."""
 
-from .code_analyzer import CodeNode, CodeAnalyzer
+from .code_analyzer import CodeAnalyzer, CodeNode
 
-__all__ = ["CodeNode", "CodeAnalyzer"] 
+__all__ = ["CodeAnalyzer", "CodeNode"]

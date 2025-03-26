@@ -1,7 +1,7 @@
 """Refinement Agent for implementing code changes based on review comments."""
 
 import json
-from typing import Dict, List, Optional
+from typing import Optional
 
 from agentic_code_review.code_analysis.code_analyzer import CodeAnalyzer
 from agentic_code_review.code_analysis.language_config import LanguageConfig
@@ -50,17 +50,15 @@ class RefinementAgent:
         """
         # Get unresolved comments
         comments = await self.pr_manager.get_unresolved_comments(pr_number)
-        
+
         # Process and group comments
         grouped_comments = self.comment_processor.process_comments(comments)
-        
+
         # Process each file's comments
         for file_path, file_comments in grouped_comments.items():
             await self._process_file_comments(pr_number, file_path, file_comments)
 
-    async def _process_file_comments(
-        self, pr_number: int, file_path: str, comments: List[PRComment]
-    ) -> None:
+    async def _process_file_comments(self, pr_number: int, file_path: str, comments: list[PRComment]) -> None:
         """Process comments for a specific file.
 
         Args:
@@ -74,15 +72,13 @@ class RefinementAgent:
             if not file_content:
                 logger.error(f"Failed to get content for {file_path}")
                 return
-            
+
             # Parse code
             self.code_analyzer.parse_code(file_content)
-            
+
             # Group comments by code unit
-            unit_comments = self.comment_processor.group_comments_by_context(
-                comments, self.code_analyzer
-            )
-            
+            unit_comments = self.comment_processor.group_comments_by_context(comments, self.code_analyzer)
+
             # Process each unit's comments
             for unit, unit_comments in unit_comments.items():
                 try:
@@ -90,42 +86,38 @@ class RefinementAgent:
                     if not unit.is_valid():
                         logger.warning(f"Node {unit.node_id} is no longer valid, skipping comments")
                         continue
-                        
+
                     # Get code context
                     context = self._get_code_context(unit)
-                    
+
                     # Generate changes
-                    response = await self._generate_changes(
-                        file_path, context["code_snippet"], unit_comments, context
-                    )
-                    
+                    response = await self._generate_changes(file_path, context["code_snippet"], unit_comments, context)
+
                     if response:
                         # Validate changes before applying
                         if not self.code_analyzer.validate_changes(response.modified_code):
                             logger.error(f"Invalid changes generated for {file_path}")
                             continue
-                            
+
                         # Apply changes
                         await self._apply_changes(pr_number, file_path, response)
-                        
+
                         # Handle signature changes
                         if response.modified_signatures:
-                            await self._handle_signature_changes(
-                                pr_number, file_path, response.modified_signatures
-                            )
-                        
+                            await self._handle_signature_changes(pr_number, file_path, response.modified_signatures)
+
                         # Resolve implemented suggestions
                         for suggestion in response.implemented_suggestions:
                             await self.pr_manager.resolve_comment(suggestion.suggestion_id)
-                            
+
                 except Exception as e:
                     logger.error(f"Failed to process unit in {file_path}: {e}")
                     continue
-                    
+
         except Exception as e:
             logger.error(f"Failed to process comments for {file_path}: {e}")
 
-    def _get_code_context(self, node: "CodeNode") -> Dict:
+    def _get_code_context(self, node: "CodeNode") -> dict:
         """Get code context for a node.
 
         Args:
@@ -136,11 +128,11 @@ class RefinementAgent:
         """
         # Get the code snippet
         code_snippet = self.code_analyzer.get_node_text(node)
-        
+
         # Get additional context
         context_nodes = self.code_analyzer.get_node_context(node)
         additional_context = self._format_context(context_nodes)
-        
+
         return {
             "code_snippet": code_snippet,
             "additional_context": additional_context,
@@ -150,7 +142,7 @@ class RefinementAgent:
             "tree_id": node.tree_id,
         }
 
-    def _format_context(self, context_nodes: List["CodeNode"]) -> str:
+    def _format_context(self, context_nodes: list["CodeNode"]) -> str:
         """Format context nodes into a readable string.
 
         Args:
@@ -171,8 +163,8 @@ class RefinementAgent:
         self,
         file_path: str,
         code_snippet: str,
-        comments: List[PRComment],
-        context: Dict,
+        comments: list[PRComment],
+        context: dict,
     ) -> Optional[RefinementResponse]:
         """Generate code changes based on comments and context.
 
@@ -195,7 +187,7 @@ class RefinementAgent:
             }
             for comment in comments
         ]
-        
+
         # Generate prompt
         prompt = CODE_REFINEMENT_TEMPLATE.format(
             file_path=file_path,
@@ -203,42 +195,31 @@ class RefinementAgent:
             suggestions=json.dumps(suggestions, indent=2),
             additional_context=context.get("additional_context", ""),
         )
-        
+
         # Get response from LLM
         response_text = await self.llm_client.generate_code(prompt)
         if not response_text:
             return None
-            
+
         try:
             # Parse response
             response_data = json.loads(response_text)
-            
+
             # Convert to structured response
             return RefinementResponse(
                 function_name=response_data["function_name"],
                 unit_start_line=response_data["unit_start_line"],
                 unit_end_line=response_data["unit_end_line"],
                 modified_code=response_data["modified_code"],
-                implemented_suggestions=[
-                    ImplementedSuggestion(**s)
-                    for s in response_data["implemented_suggestions"]
-                ],
-                skipped_suggestions=[
-                    SkippedSuggestion(**s)
-                    for s in response_data["skipped_suggestions"]
-                ],
-                modified_signatures=[
-                    ModifiedSignature(**s)
-                    for s in response_data["modified_signatures"]
-                ],
+                implemented_suggestions=[ImplementedSuggestion(**s) for s in response_data["implemented_suggestions"]],
+                skipped_suggestions=[SkippedSuggestion(**s) for s in response_data["skipped_suggestions"]],
+                modified_signatures=[ModifiedSignature(**s) for s in response_data["modified_signatures"]],
             )
         except (json.JSONDecodeError, KeyError) as e:
             print(f"Error parsing LLM response: {e}")
             return None
 
-    async def _apply_changes(
-        self, pr_number: int, file_path: str, response: RefinementResponse
-    ) -> None:
+    async def _apply_changes(self, pr_number: int, file_path: str, response: RefinementResponse) -> None:
         """Apply code changes to the PR.
 
         Args:
@@ -251,7 +232,7 @@ class RefinementAgent:
             if not self.code_analyzer.validate_changes(response.modified_code):
                 logger.error(f"Invalid changes detected for {file_path}")
                 return
-                
+
             await self.pr_manager.commit_changes(pr_number, file_path, response.modified_code)
         except Exception as e:
             logger.error(f"Failed to apply changes to {file_path}: {e}")
@@ -261,7 +242,7 @@ class RefinementAgent:
         self,
         pr_number: int,
         file_path: str,
-        signature_changes: List[ModifiedSignature],
+        signature_changes: list[ModifiedSignature],
     ) -> None:
         """Handle function signature changes and update dependent code.
 
@@ -277,10 +258,10 @@ class RefinementAgent:
                 if not function_node or not function_node.is_valid():
                     logger.warning(f"Could not find function {change.function_name}")
                     continue
-                    
+
                 # Get function context
                 context = self._get_code_context(function_node)
-                
+
                 # Generate update prompt
                 prompt = f"""Update the following code to match the new function signature:
 
@@ -299,10 +280,10 @@ Generate only the updated code that matches the new signature."""
                     if not self.code_analyzer.validate_changes(updated_code):
                         logger.error(f"Invalid signature change for {change.function_name}")
                         continue
-                        
+
                     # Apply changes
                     await self.pr_manager.commit_changes(pr_number, file_path, updated_code)
-                    
+
         except Exception as e:
             logger.error(f"Failed to handle signature changes for {file_path}: {e}")
             raise
@@ -322,4 +303,4 @@ Generate only the updated code that matches the new signature."""
         for node in self.code_analyzer.node_mapping.values():
             if node.name == function_name and node.node_type in ["function_definition", "method_definition"]:
                 return node
-        return None 
+        return None

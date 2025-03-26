@@ -5,9 +5,9 @@ from typing import cast
 
 from langchain_core.pydantic_v1 import BaseModel, Field
 from langchain_openai import ChatOpenAI
-from pydantic import SecretStr
 
 from agentic_code_review.config import settings
+
 from ..models import FileToReview
 from .prompts.review_prompts import code_review_prompt, test_review_prompt
 

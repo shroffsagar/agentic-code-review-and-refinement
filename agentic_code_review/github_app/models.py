@@ -5,7 +5,7 @@ This module contains data models used throughout the GitHub integration.
 
 from dataclasses import dataclass
 from datetime import datetime
-from typing import Dict, Optional
+from typing import Optional
 
 
 @dataclass
@@ -36,4 +36,4 @@ class PRComment:
     node_id: Optional[int] = None  # tree-sitter's node ID
     tree_id: Optional[int] = None  # tree-sitter's tree ID
     node_type: Optional[str] = None  # Type of code node
-    node_name: Optional[str] = None  # Name of code node if applicable 
+    node_name: Optional[str] = None  # Name of code node if applicable

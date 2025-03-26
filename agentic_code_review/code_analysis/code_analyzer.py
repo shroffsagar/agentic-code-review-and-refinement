@@ -6,7 +6,7 @@ enabling efficient code structure analysis and position tracking.
 
 import logging
 from dataclasses import dataclass
-from typing import Dict, List, Optional, Set, Tuple
+from typing import Optional
 
 from tree_sitter import Language, Node, Parser, Tree
 
@@ -20,10 +20,10 @@ class CodeNode:
     node: Node
     node_type: str
     name: Optional[str] = None
-    start_point: Tuple[int, int] = (0, 0)
-    end_point: Tuple[int, int] = (0, 0)
+    start_point: tuple[int, int] = (0, 0)
+    end_point: tuple[int, int] = (0, 0)
     parent: Optional["CodeNode"] = None
-    children: List["CodeNode"] = None
+    children: list["CodeNode"] = None
     # Add tree-sitter specific fields
     node_id: int = 0  # tree-sitter's internal node ID
     tree_id: int = 0  # tree-sitter's tree ID for change tracking
@@ -45,19 +45,19 @@ class CodeNode:
             # Check if node exists in current tree
             if not self.node or not self.node.tree:
                 return False
-                
+
             # Check if node's parent chain is valid
             current = self.node
             while current.parent:
                 if not current.parent.is_valid():
                     return False
                 current = current.parent
-                
+
             # Verify node's position is within tree bounds
             tree_size = len(self.node.tree.root_node.text)
             if self.node.start_byte >= tree_size or self.node.end_byte > tree_size:
                 return False
-                
+
             return True
         except Exception as e:
             logger.error(f"Node validation error: {e}")
@@ -92,8 +92,8 @@ class CodeAnalyzer:
         self.language = language
         self.parser = Parser()
         self.parser.set_language(language)
-        self.node_mapping: Dict[Node, CodeNode] = {}
-        self.id_mapping: Dict[Tuple[int, int], CodeNode] = {}  # (node_id, tree_id) -> CodeNode
+        self.node_mapping: dict[Node, CodeNode] = {}
+        self.id_mapping: dict[tuple[int, int], CodeNode] = {}  # (node_id, tree_id) -> CodeNode
         self.current_tree_id: Optional[int] = None
 
     def parse_code(self, code: str) -> None:
@@ -122,25 +122,14 @@ class CodeAnalyzer:
         Args:
             node: The current node to process
         """
-        code_node = CodeNode(
-            node=node,
-            node_type=node.type,
-            start_point=node.start_point,
-            end_point=node.end_point,
-            name=self._get_node_name(node)
-        )
+        code_node = CodeNode(node=node, node_type=node.type, start_point=node.start_point, end_point=node.end_point, name=self._get_node_name(node))
         self.node_mapping[node] = code_node
         self.id_mapping[(code_node.node_id, code_node.tree_id)] = code_node
 
         # Set parent-child relationships
         for child in node.children:
             child_code_node = CodeNode(
-                node=child,
-                node_type=child.type,
-                start_point=child.start_point,
-                end_point=child.end_point,
-                name=self._get_node_name(child),
-                parent=code_node
+                node=child, node_type=child.type, start_point=child.start_point, end_point=child.end_point, name=self._get_node_name(child), parent=code_node
             )
             code_node.children.append(child_code_node)
             self.node_mapping[child] = child_code_node
@@ -190,7 +179,7 @@ class CodeAnalyzer:
         for code_node in self.node_mapping.values():
             if not code_node.is_valid():
                 continue
-            if (code_node.start_point <= position <= code_node.end_point):
+            if code_node.start_point <= position <= code_node.end_point:
                 matching_nodes.append(code_node)
 
         if not matching_nodes:
@@ -199,7 +188,7 @@ class CodeAnalyzer:
         # Return the most specific (smallest) node
         return min(matching_nodes, key=lambda n: n.end_point[0] - n.start_point[0])
 
-    def get_node_context(self, node: CodeNode) -> List[CodeNode]:
+    def get_node_context(self, node: CodeNode) -> list[CodeNode]:
         """Get the context of a node (parent chain).
 
         Args:
@@ -210,7 +199,7 @@ class CodeAnalyzer:
         """
         if not node.is_valid():
             return []
-            
+
         context = []
         current = node
         while current:
@@ -231,7 +220,7 @@ class CodeAnalyzer:
             return ""
         return node.node.text.decode("utf-8")
 
-    def get_node_range(self, node: CodeNode) -> Tuple[Tuple[int, int], Tuple[int, int]]:
+    def get_node_range(self, node: CodeNode) -> tuple[tuple[int, int], tuple[int, int]]:
         """Get the line and column range of a node.
 
         Args:
@@ -259,4 +248,4 @@ class CodeAnalyzer:
             return tree.root_node is not None
         except Exception as e:
             logger.error(f"Code validation error: {e}")
-            return False 
+            return False

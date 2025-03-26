@@ -1,7 +1,6 @@
 """Models for refinement agent responses."""
 
 from dataclasses import dataclass
-from typing import List, Optional
 
 
 @dataclass
@@ -38,6 +37,6 @@ class RefinementResponse:
     unit_start_line: int
     unit_end_line: int
     modified_code: str
-    implemented_suggestions: List[ImplementedSuggestion]
-    skipped_suggestions: List[SkippedSuggestion]
-    modified_signatures: List[ModifiedSignature] 
+    implemented_suggestions: list[ImplementedSuggestion]
+    skipped_suggestions: list[SkippedSuggestion]
+    modified_signatures: list[ModifiedSignature]

@@ -7,7 +7,7 @@ for different programming languages supported by tree-sitter.
 import logging
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Dict, Optional, Set
+from typing import Optional
 
 from tree_sitter import Language
 
@@ -19,18 +19,18 @@ class LanguageConfig:
     """Configuration for a specific programming language."""
 
     name: str
-    file_extensions: Set[str]
+    file_extensions: set[str]
     grammar_path: str
-    node_types: Dict[str, str]
-    query_templates: Dict[str, str]
+    node_types: dict[str, str]
+    query_templates: dict[str, str]
 
 
 class LanguageRegistry:
     """Registry for managing language configurations."""
 
     _instance: Optional["LanguageRegistry"] = None
-    _languages: Dict[str, Language] = {}
-    _configs: Dict[str, LanguageConfig] = {}
+    _languages: dict[str, Language] = {}
+    _configs: dict[str, LanguageConfig] = {}
 
     def __new__(cls) -> "LanguageRegistry":
         """Ensure singleton instance."""
@@ -102,10 +102,7 @@ class LanguageRegistry:
                     logger.error(f"Grammar path does not exist: {grammar_path}")
                     return None
 
-                self._languages[language_name] = Language(
-                    str(grammar_path / "src" / f"{language_name}.so"),
-                    language_name
-                )
+                self._languages[language_name] = Language(str(grammar_path / "src" / f"{language_name}.so"), language_name)
             except Exception as e:
                 logger.error(f"Failed to load language {language_name}: {e}")
                 return None
@@ -147,4 +144,4 @@ class LanguageRegistry:
         Returns:
             True if the language is supported, False otherwise
         """
-        return language_name in self._configs 
+        return language_name in self._configs

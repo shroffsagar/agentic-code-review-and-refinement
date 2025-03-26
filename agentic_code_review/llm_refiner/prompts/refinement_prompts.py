@@ -52,4 +52,4 @@ Your response MUST be valid JSON conforming to the following schema:
   ]
 }
 
-Note: Your changes should only affect the provided code region. Maintain the existing code style and formatting patterns.""" 
+Note: Your changes should only affect the provided code region. Maintain the existing code style and formatting patterns."""

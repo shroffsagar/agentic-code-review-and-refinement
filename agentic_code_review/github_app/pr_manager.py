@@ -1,9 +1,7 @@
 """Manager for GitHub PR operations."""
 
-from typing import Dict, List, Optional
-
-from agentic_code_review.github_app.models import PRComment
 from agentic_code_review.github_app.authenticator import GitHubAuthenticator
+from agentic_code_review.github_app.models import PRComment
 
 
 class PRManager:
@@ -35,7 +33,7 @@ class PRManager:
             print(f"Error getting file content: {e}")
             return ""
 
-    async def get_unresolved_comments(self, pr_number: int) -> List[PRComment]:
+    async def get_unresolved_comments(self, pr_number: int) -> list[PRComment]:
         """Get all unresolved review comments on a PR.
 
         Args:
@@ -81,9 +79,7 @@ class PRManager:
             print(f"Error resolving comment: {e}")
             return False
 
-    async def commit_changes(
-        self, pr_number: int, file_path: str, content: str
-    ) -> bool:
+    async def commit_changes(self, pr_number: int, file_path: str, content: str) -> bool:
         """Commit changes to a file in a PR.
 
         Args:
@@ -99,4 +95,4 @@ class PRManager:
             return True
         except Exception as e:
             print(f"Error committing changes: {e}")
-            return False 
+            return False

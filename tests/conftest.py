@@ -6,7 +6,6 @@ from collections.abc import Generator
 
 import pytest
 
-from agentic_code_review.config import settings
 from agentic_code_review.utils.logging import setup_logging
 
 

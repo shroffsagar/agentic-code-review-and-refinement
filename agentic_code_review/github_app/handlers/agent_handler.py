@@ -22,7 +22,7 @@ class AgentHandler:
         """Initialize the agent handler."""
         self.pr_manager = pr_manager
         self.reviewer = LLMReviewer()
-        
+
         # Initialize refinement components
         self.llm_client = LLMClient()
         self.code_analyzer = CodeAnalyzer()

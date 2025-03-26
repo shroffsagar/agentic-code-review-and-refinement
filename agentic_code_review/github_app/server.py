@@ -11,6 +11,7 @@ from typing import Any
 from flask import Flask, request
 
 from agentic_code_review.config import settings
+
 from .auth.authenticator import GitHubAuthenticator
 from .handlers.agent_handler import AgentHandler
 from .managers.pr_manager import PRContext, PRManager
