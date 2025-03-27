@@ -134,7 +134,7 @@ class GitHubApp:
             # Create PR context
             pr_context = PRContext(
                 installation_id=int(installation_id) if installation_id else 0,
-                repository=repository,
+                repo=repository,
                 pr_number=int(pr_number) if pr_number else 0,
             )
 
@@ -152,19 +152,11 @@ class GitHubApp:
                 # Pass to the appropriate handler based on label
                 if label_name == "agentic-review":
                     loop.run_until_complete(
-                        self.agent_handler.handle_review(
-                            installation_id=pr_context.installation_id,
-                            repository=pr_context.repository,
-                            pr_number=pr_context.pr_number,
-                        )
+                        self.agent_handler.handle_review(pr_context)
                     )
                 elif label_name == "agentic-refine":
                     loop.run_until_complete(
-                        self.agent_handler.handle_refine(
-                            installation_id=pr_context.installation_id,
-                            repository=pr_context.repository,
-                            pr_number=pr_context.pr_number,
-                        )
+                        self.agent_handler.handle_refine(pr_context)
                     )
                 else:
                     logger.info(f"⏭️ Ignoring non-matching label: {label_name}")

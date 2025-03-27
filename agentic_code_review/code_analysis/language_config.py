@@ -10,6 +10,7 @@ from pathlib import Path
 from typing import Optional
 
 from tree_sitter import Language
+from tree_sitter_languages import get_language
 
 logger = logging.getLogger(__name__)
 
@@ -20,7 +21,6 @@ class LanguageConfig:
 
     name: str
     file_extensions: set[str]
-    grammar_path: str
     node_types: dict[str, str]
     query_templates: dict[str, str]
 
@@ -49,7 +49,6 @@ class LanguageRegistry:
         self._configs["python"] = LanguageConfig(
             name="python",
             file_extensions={".py"},
-            grammar_path="vendor/tree-sitter-python",
             node_types={
                 "function": "function_definition",
                 "method": "method_definition",
@@ -90,6 +89,7 @@ class LanguageRegistry:
         Returns:
             A tree-sitter Language instance, or None if not found
         """
+        logger.debug(f"Attempting to get language: {language_name}")
         if language_name not in self._languages:
             config = self._configs.get(language_name)
             if not config:
@@ -97,16 +97,21 @@ class LanguageRegistry:
                 return None
 
             try:
-                grammar_path = Path(config.grammar_path)
-                if not grammar_path.exists():
-                    logger.error(f"Grammar path does not exist: {grammar_path}")
+                logger.debug(f"Calling tree-sitter-languages.get_language({language_name})")
+                # Use tree-sitter-languages to get the pre-built grammar
+                language = get_language(language_name)
+                if language is None:
+                    logger.error(f"Failed to get language {language_name} from tree-sitter-languages")
                     return None
-
-                self._languages[language_name] = Language(str(grammar_path / "src" / f"{language_name}.so"), language_name)
+                
+                logger.debug(f"Successfully got language instance for {language_name}")
+                # Store the language instance directly
+                self._languages[language_name] = language
             except Exception as e:
-                logger.error(f"Failed to load language {language_name}: {e}")
+                logger.error(f"Failed to load language {language_name}: {e}", exc_info=True)
                 return None
 
+        logger.debug(f"Returning cached language instance for {language_name}")
         return self._languages[language_name]
 
     def get_config(self, language_name: str) -> Optional[LanguageConfig]:

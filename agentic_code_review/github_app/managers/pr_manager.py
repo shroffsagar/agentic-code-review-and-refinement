@@ -14,6 +14,7 @@ from ...code_analysis.code_analyzer import CodeAnalyzer
 from ...code_analysis.language_config import LanguageRegistry
 from ..auth.authenticator import GitHubAuthenticator
 from ..models import PRComment, PRContext
+from ..constants import IN_PROGRESS_LABEL
 
 logger = logging.getLogger(__name__)
 
@@ -22,9 +23,13 @@ logger = logging.getLogger(__name__)
 class PRFile:
     """Represents a file in a pull request."""
 
-    path: str
-    content: str
-    code_analyzer: Optional[CodeAnalyzer] = None
+    filename: str
+    patch: str | None
+    status: str
+    additions: int
+    deletions: int
+    changes: int
+    previous_filename: str | None = None
 
 
 class PRManager:
@@ -42,29 +47,7 @@ class PRManager:
         # Cache for installation clients
         self._installation_clients = {}
 
-    def _get_github_client(self, context: PRContext):
-        """Get a GitHub client for the installation.
-
-        Args:
-            context: The PR context containing installation ID
-
-        Returns:
-            A GitHub client for the installation
-        """
-        # Cache the client to avoid repeated authentication
-        if context.installation_id not in self._installation_clients:
-            try:
-                logger.info(f"Getting GitHub client for installation {context.installation_id}")
-                self._installation_clients[context.installation_id] = self.authenticator.get_installation_client(
-                    context.installation_id
-                )
-            except Exception as e:
-                logger.error(f"Failed to get GitHub client for installation {context.installation_id}: {e}")
-                raise
-        
-        return self._installation_clients[context.installation_id]
-
-    def get_pr(self, context: PRContext) -> Optional[PullRequest]:
+    def _get_pr(self, context: PRContext) -> PullRequest:
         """Get a pull request by its context.
 
         Args:
@@ -73,13 +56,9 @@ class PRManager:
         Returns:
             The pull request if found, None otherwise
         """
-        try:
-            github = self._get_github_client(context)
-            repo = github.get_repo(context.repo)
-            return repo.get_pull(context.pr_number)
-        except Exception as e:
-            logger.error(f"Failed to get PR #{context.pr_number}: {e}")
-            return None
+        client = self.authenticator.get_installation_client(context.installation_id)
+        repo = client.get_repo(context.repo["full_name"])
+        return repo.get_pull(context.pr_number)
 
     def get_file_content(self, repo: Repository, path: str, ref: str) -> Optional[str]:
         """Get the content of a file at a specific reference.
@@ -111,10 +90,7 @@ class PRManager:
         Returns:
             List of unresolved comments with their code context
         """
-        pr = self.get_pr(context)
-        if not pr:
-            return []
-
+        pr = self._get_pr(context)
         # Get all review comments
         comments = []
         for review in pr.get_reviews():
@@ -228,84 +204,100 @@ class PRManager:
 
         return " > ".join(context_parts)
 
-    def post_comment(
+    def post_comment(self, context: PRContext, message: str) -> None:
+        """Post a comment on a pull request."""
+        try:
+            pr = self._get_pr(context)
+            pr.create_issue_comment(message)
+            logger.info(f"Posted comment on PR #{context.pr_number}")
+        except Exception as e:
+            logger.error(f"Failed to post comment on PR #{context.pr_number}: {e}")
+            raise
+
+    def manage_labels(
         self,
         context: PRContext,
-        file_path: str,
-        line_number: int,
-        body: str,
-        commit_id: Optional[str] = None,
-    ) -> Optional[PRComment]:
-        """Post a new review comment on a pull request.
-
-        Args:
-            context: The PR context
-            file_path: The path to the file
-            line_number: The line number to comment on
-            body: The comment body
-            commit_id: The commit ID to comment on
-
-        Returns:
-            The posted comment if successful, None otherwise
-        """
-        pr = self.get_pr(context)
-        if not pr:
-            return None
-
-        try:
-            # Use the latest commit if none specified
-            if not commit_id:
-                commit_id = pr.get_commits().reversed[0].sha
-
-            # Create the review comment
-            review = pr.create_review(
-                body="Code Review",
-                event="COMMENT",
-                commit_id=commit_id,
-            )
-
-            # Add the comment
-            comment = review.create_comment(
-                body=body,
-                path=file_path,
-                line=line_number,
-                side="RIGHT",
-            )
-
-            return self._convert_to_pr_comment(comment)
-        except Exception as e:
-            logger.error(f"Failed to post comment: {e}")
-            return None
-
-    def manage_labels(self, context: PRContext, labels: set[str]) -> bool:
+        add_labels: list[str] | None = None,
+        remove_labels: list[str] | None = None,
+    ) -> bool:
         """Manage labels on a pull request.
 
         Args:
             context: The PR context
-            labels: Set of labels to apply
+            add_labels: List of labels to add
+            remove_labels: List of labels to remove
 
         Returns:
             True if successful, False otherwise
         """
-        pr = self.get_pr(context)
-        if not pr:
-            return False
-
         try:
+            pr = self._get_pr(context)
             # Get current labels
             current_labels = {label.name for label in pr.labels}
 
             # Add new labels
-            for label in labels:
-                if label not in current_labels:
-                    pr.add_to_labels(label)
+            if add_labels:
+                for label in add_labels:
+                    if label not in current_labels:
+                        pr.add_to_labels(label)
 
-            # Remove labels that are no longer needed
-            for label in current_labels:
-                if label not in labels:
-                    pr.remove_from_labels(label)
+            # Remove specified labels
+            if remove_labels:
+                for label in remove_labels:
+                    if label in current_labels:
+                        pr.remove_from_labels(label)
 
             return True
         except Exception as e:
             logger.error(f"Failed to manage labels: {e}")
             return False
+
+    def is_in_progress(self, context: PRContext) -> bool:
+        """Check if a PR is currently being processed.
+
+        Args:
+            context: The PR context
+
+        Returns:
+            True if the PR is being processed, False otherwise
+        """
+        try:
+            pr = self._get_pr(context)
+            # Check for in-progress label
+            current_labels = {label.name for label in pr.labels}
+            return IN_PROGRESS_LABEL in current_labels
+        except Exception as e:
+            logger.error(f"Failed to check PR status: {e}")
+            return False
+
+    def get_pr_files(self, context: PRContext) -> list[PRFile]:
+        """Get all files changed in a pull request.
+
+        Args:
+            context: The PR context
+
+        Returns:
+            List of PRFile objects representing changed files
+        """
+        try:
+            pr = self._get_pr(context)
+            files = []
+
+            for file in pr.get_files():
+                pr_file = PRFile(
+                    filename=file.filename,
+                    patch=file.patch,
+                    status=file.status,
+                    additions=file.additions,
+                    deletions=file.deletions,
+                    changes=file.changes,
+                    previous_filename=file.previous_filename if hasattr(file, "previous_filename") else None,
+                )
+                files.append(pr_file)
+
+            logger.info(f"Fetched {len(files)} files from PR #{context.pr_number}")
+            return files
+        except Exception as e:
+            logger.error(f"Failed to fetch files for PR #{context.pr_number}: {e}")
+            raise
+

@@ -5,14 +5,14 @@ This module contains data models used throughout the GitHub integration.
 
 from dataclasses import dataclass
 from datetime import datetime
-from typing import Optional
+from typing import Optional, Any
 
 
 @dataclass
 class PRContext:
     """Context for PR operations."""
 
-    repo: str
+    repo: dict[str, Any]
     pr_number: int
     installation_id: int
 
