@@ -3,59 +3,28 @@
 from langchain_core.prompts import PromptTemplate
 
 # Base template for code review
-CODE_REVIEW_TEMPLATE = """You are an expert code reviewer with deep knowledge of software engineering best practices.
-Review the following code changes and provide detailed feedback on:
-
-1. Code Quality:
-   - Clean code principles
-   - Design patterns
-   - Code organization
-   - Variable/function naming
-   - Comments and documentation
-
-2. Performance:
-   - Algorithmic efficiency
-   - Resource usage
-   - Potential bottlenecks
-
-3. Security:
-   - Potential vulnerabilities
-   - Input validation
-   - Authentication/authorization issues
-   - Data protection
-
-4. Testing:
-   - Test coverage
-   - Edge cases
-   - Test quality and organization
-
-5. Maintainability:
-   - Code duplication
-   - Modularity
-   - Extensibility
-   - Dependencies
+CODE_REVIEW_TEMPLATE = """Expert code reviewer. Focus on high-impact issues only.
+Priority areas:
+1. Security - Vulnerabilities, auth issues
+2. Performance - Critical bottlenecks
+3. Code Quality - Major design flaws
+4. Testing - Missing critical test coverage
+5. Maintainability - Significant duplication issues
 
 Context:
 File: {file_path}
-Changes:
-{code_diff}
+Changes: {code_diff}
+Context: {additional_context}
 
-Additional Context:
-{additional_context}
+Return JSON per schema: {format_instructions}
 
-For each issue found, provide a review comment following this JSON schema:
-{format_instructions}
+KEY RULES:
+1. ONLY report High and critical Medium severity issues
+2. Aggregate similar low-severity issues into ONE comment
+3. Format: [file:line], Category (Quality/Performance/Security/Testing/Maintainability), Severity
+4. Be specific and actionable
 
-Your response MUST be valid JSON according to the schema above. I will parse your response programmatically.
-
-Notes:
-- Location should be in format [file:line] (e.g., [main.py:42])
-- Category must be one of: Quality, Performance, Security, Testing, Maintainability
-- Severity must be one of: High, Medium, Low
-- Description should be clear and specific
-- Suggestion should provide actionable improvement steps
-
-Focus on substantive issues that would meaningfully improve the code."""
+Focus only on substantive issues. Be concise."""
 
 # Create PromptTemplate instances
 code_review_prompt = PromptTemplate(
@@ -64,48 +33,26 @@ code_review_prompt = PromptTemplate(
 )
 
 # Template for reviewing test files specifically
-TEST_REVIEW_TEMPLATE = """You are an expert in software testing and test-driven development.
-Review the following test code changes and provide detailed feedback on:
-
-1. Test Coverage:
-   - Test scenarios covered
-   - Missing edge cases
-   - Integration test aspects
-
-2. Test Quality:
-   - Test organization and structure
-   - Assertion quality
-   - Test isolation
-   - Mock/stub usage
-   - Test readability
-
-3. Test Maintainability:
-   - Test setup and teardown
-   - Test data management
-   - Test naming conventions
-   - Test documentation
+TEST_REVIEW_TEMPLATE = """Expert test reviewer. Focus on high-impact issues only.
+Priority areas:
+1. Test Coverage - Missing critical scenarios, essential edge cases
+2. Test Quality - Major structural flaws, critical assertion issues
+3. Test Maintainability - Major organization problems
 
 Context:
 File: {file_path}
-Changes:
-{code_diff}
+Changes: {code_diff}
+Context: {additional_context}
 
-Additional Context:
-{additional_context}
+Return JSON per schema: {format_instructions}
 
-For each issue found, provide a review comment following this JSON schema:
-{format_instructions}
+KEY RULES:
+1. ONLY report High and critical Medium severity issues
+2. Aggregate similar low-severity issues into ONE comment
+3. Format: [file:line], Category (Coverage/Quality/Maintainability), Severity
+4. Be specific and actionable
 
-Your response MUST be valid JSON according to the schema above. I will parse your response programmatically.
-
-Notes:
-- Location should be in format [file:line] (e.g., [test_main.py:42])
-- Category must be one of: Coverage, Quality, Maintainability
-- Severity must be one of: High, Medium, Low
-- Description should be clear and specific
-- Suggestion should provide actionable improvement steps
-
-Focus on improving test reliability, maintainability, and effectiveness."""
+Focus only on substantive issues. Be concise."""
 
 # Create PromptTemplate for test review
 test_review_prompt = PromptTemplate(

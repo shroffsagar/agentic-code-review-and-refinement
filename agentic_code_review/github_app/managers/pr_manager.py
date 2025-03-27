@@ -205,14 +205,58 @@ class PRManager:
         return " > ".join(context_parts)
 
     def post_comment(self, context: PRContext, message: str) -> None:
-        """Post a comment on a pull request."""
+        """Post a general comment on a pull request.
+        
+        This method is used for posting general PR comments that are not tied to specific code lines.
+        For inline code review comments, use post_review_comment instead.
+
+        Args:
+            context: The PR context
+            message: The comment message
+        """
         try:
             pr = self._get_pr(context)
             pr.create_issue_comment(message)
-            logger.info(f"Posted comment on PR #{context.pr_number}")
+            logger.info(f"Posted general comment on PR #{context.pr_number}")
         except Exception as e:
             logger.error(f"Failed to post comment on PR #{context.pr_number}: {e}")
             raise
+
+    def post_review_comment(
+        self,
+        context: PRContext,
+        file_path: str,
+        line_number: int,
+        message: str,
+        side: Optional[str] = None,
+    ) -> None:
+        """Post an inline review comment on a specific line of code.
+
+        Args:
+            context: The PR context
+            file_path: Path to the file being commented on
+            line_number: Line number to comment on
+            message: The review comment message
+            side: Which side of the diff to comment on (optional)
+        """
+        pr = self._get_pr(context)
+        
+        # Get the latest commit from the PR
+        commits = list(pr.get_commits().reversed)
+        if not commits:
+            raise ValueError("No commits found in the PR")
+        
+        commit = commits[0]
+        logger.debug(f"Using commit {commit.sha} for review comment")
+
+        # Create a review comment directly on the code line
+        pr.create_review_comment(
+            body=message,
+            commit=commit,
+            path=file_path,
+            line=line_number
+        )
+        logger.info(f"Posted review comment on line {line_number} of {file_path}")
 
     def manage_labels(
         self,

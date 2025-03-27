@@ -133,13 +133,55 @@ class AgentHandler:
             comments: List of review comments to post
         """
         for comment in comments:
-            message = (
-                f"### {comment.category} Issue - {comment.severity} Severity\n\n"
-                f"**Location:** {comment.location}\n\n"
-                f"**Description:**\n{comment.description}\n\n"
-                f"**Suggestion:**\n{comment.suggestion}"
-            )
-            self.pr_manager.post_comment(context, message)
+            try:
+                # Extract file path and line number from the location
+                # Location format: [file:line] or [file:start-end] or [file:line1, line2, ...]
+                location_parts = comment.location.strip("[]").split(":")
+                if len(location_parts) != 2:
+                    logger.error(f"Invalid location format: {comment.location}")
+                    continue
+                    
+                file_path = location_parts[0]
+                line_part = location_parts[1]
+                
+                # Prepare the base message
+                message = (
+                    f"### {comment.category} Issue - {comment.severity} Severity\n\n"
+                    f"**Description:**\n{comment.description}\n\n"
+                    f"**Suggestion:**\n{comment.suggestion}"
+                )
+                
+                # Handle different location formats
+                if "," in line_part:
+                    # Multiple lines - post file-level comment
+                    message = (
+                        f"### {comment.category} Issue - {comment.severity} Severity\n\n"
+                        f"**File:** {file_path}\n"
+                        f"**Lines:** {line_part}\n\n"
+                        f"**Description:**\n{comment.description}\n\n"
+                        f"**Suggestion:**\n{comment.suggestion}"
+                    )
+                    self.pr_manager.post_comment(context, message)
+                else:
+                    # Single line or range - post line-specific comment
+                    line_number = int(line_part.split("-")[1] if "-" in line_part else line_part)
+                    self.pr_manager.post_review_comment(
+                        context=context,
+                        file_path=file_path,
+                        line_number=line_number,
+                        message=message,
+                    )
+                    
+            except (ValueError, IndexError) as e:
+                logger.error(f"Failed to parse location {comment.location}: {e}")
+                # Fallback to general comment if location parsing fails
+                message = (
+                    f"### {comment.category} Issue - {comment.severity} Severity\n\n"
+                    f"**Location:** {comment.location}\n\n"
+                    f"**Description:**\n{comment.description}\n\n"
+                    f"**Suggestion:**\n{comment.suggestion}"
+                )
+                self.pr_manager.post_comment(context, message)
 
     @with_pr_state_management(
         operation_name="review",
