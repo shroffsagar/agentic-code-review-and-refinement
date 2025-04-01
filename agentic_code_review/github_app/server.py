@@ -156,7 +156,7 @@ class GitHubApp:
                     )
                 elif label_name == "agentic-refine":
                     loop.run_until_complete(
-                        self.agent_handler.handle_refine(pr_context)
+                        self.agent_handler.handle_refinement(pr_context)
                     )
                 else:
                     logger.info(f"⏭️ Ignoring non-matching label: {label_name}")

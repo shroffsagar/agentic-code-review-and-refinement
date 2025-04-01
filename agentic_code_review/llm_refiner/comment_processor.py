@@ -1,142 +1,160 @@
-"""Process and group review comments for refinement."""
+"""Process and group PR comments for refinement.
+
+This module provides functionality for processing and grouping PR comments
+to prepare them for refinement.
+"""
 
 import logging
-from typing import Optional
+from typing import Dict, List, Optional, Set, Tuple
+from tree_sitter import Node
 
-from ..code_analysis.code_analyzer import CodeAnalyzer, CodeNode
-from ..code_analysis.language_config import LanguageRegistry
-from ..code_analysis.signature_parser import Signature, SignatureParser
-from ..github_app.models import PRComment
+from agentic_code_review.github_app.models import PRComment
+from .context_extractor import ContextExtractor
 
 logger = logging.getLogger(__name__)
 
 
 class CommentProcessor:
-    """Processes and groups review comments for refinement."""
+    """Process and group PR comments for refinement."""
 
     def __init__(self):
         """Initialize the comment processor."""
-        self.language_registry = LanguageRegistry()
-        self.signature_parser = SignatureParser()
+        pass
 
-    def process_comments(self, comments: list[PRComment]) -> dict[str, list[PRComment]]:
-        """Process and group comments by file.
+    def group_comments_by_file(self, comments: List[PRComment]) -> Dict[str, List[PRComment]]:
+        """Group comments by their file path.
 
         Args:
-            comments: List of comments to process
+            comments: List of comments to group
 
         Returns:
             Dictionary mapping file paths to their comments
         """
-        # Group comments by file
-        file_comments: dict[str, list[PRComment]] = {}
+        file_comments: Dict[str, List[PRComment]] = {}
+        
         for comment in comments:
             if comment.path not in file_comments:
                 file_comments[comment.path] = []
             file_comments[comment.path].append(comment)
-
+            
         return file_comments
+        
+    def group_comments_by_proximity(self, comments: List[PRComment], proximity_threshold: int = 10) -> List[List[PRComment]]:
+        """Group comments by their proximity in the file.
 
-    def group_comments_by_context(self, comments: list[PRComment], code_analyzer: CodeAnalyzer) -> dict[CodeNode, list[PRComment]]:
-        """Group comments by their code context.
+        Comments that are within proximity_threshold lines of each other
+        are likely to be related and are grouped together.
 
         Args:
             comments: List of comments to group
-            code_analyzer: The code analyzer for node lookup
+            proximity_threshold: Maximum line distance for comments to be considered related
 
         Returns:
-            Dictionary mapping code nodes to their comments
+            List of comment groups
         """
-        grouped: dict[CodeNode, list[PRComment]] = {}
+        if not comments:
+            return []
+            
+        # Sort comments by line number
+        sorted_comments = sorted(comments, key=lambda c: c.line_number)
+        
+        # Initialize groups
+        groups: List[List[PRComment]] = [[sorted_comments[0]]]
+        
+        # Group comments based on proximity
+        for comment in sorted_comments[1:]:
+            last_group = groups[-1]
+            last_comment = last_group[-1]
+            
+            # If the comment is within the proximity threshold of the last comment in the group,
+            # add it to the same group
+            if abs(comment.line_number - last_comment.line_number) <= proximity_threshold:
+                last_group.append(comment)
+            else:
+                # Start a new group
+                groups.append([comment])
+                
+        return groups
+        
+    def group_comments_by_code_unit(self, comments: List[PRComment], file_content: str, file_path: str) -> List[List[PRComment]]:
+        """Group comments by the code unit (function/method/class) they belong to.
 
+        Comments that belong to the same code unit (function, method, class) are grouped together
+        regardless of their line distance.
+
+        Args:
+            comments: List of comments to group
+            file_content: Content of the file
+            file_path: Path to the file
+
+        Returns:
+            List of comment groups, where each group contains comments for the same code unit
+        """
+        if not comments:
+            return []
+            
+        # Create a context extractor
+        context_extractor = ContextExtractor()
+        
+        # Map for tracking which code unit each comment belongs to
+        # We'll use the code unit's start line and end line as its identifier
+        unit_to_comments: Dict[Optional[Tuple[int, int]], List[PRComment]] = {}
+        
+        # Assign each comment to its containing code unit
         for comment in comments:
-            # Skip comments without node information
-            if not comment.node_id or not comment.tree_id:
-                logger.warning(f"Comment {comment.id} missing node information")
-                continue
-
-            # Find the corresponding node
-            node = code_analyzer.find_node_by_id(comment.node_id, comment.tree_id)
-            if not node or not node.is_valid():
-                logger.warning(f"Invalid node for comment {comment.id}")
-                continue
-
-            # Group by the most specific valid node
-            target_node = self._find_most_specific_node(node)
-            if target_node:
-                if target_node not in grouped:
-                    grouped[target_node] = []
-                grouped[target_node].append(comment)
-
-        return grouped
-
-    def _find_most_specific_node(self, node: CodeNode) -> Optional[CodeNode]:
-        """Find the most specific valid node in the hierarchy.
-
-        Args:
-            node: The starting node
-
-        Returns:
-            The most specific valid node, or None if no valid nodes found
-        """
-        if not node.is_valid():
-            return None
-
-        # If node has no children or no valid children, return this node
-        if not node.children or not any(child.is_valid() for child in node.children):
-            return node
-
-        # Find the most specific valid child
-        valid_children = [child for child in node.children if child.is_valid()]
-        if not valid_children:
-            return node
-
-        # Recursively find the most specific valid child
-        most_specific = None
-        for child in valid_children:
-            specific = self._find_most_specific_node(child)
-            if specific:
-                most_specific = specific
-
-        return most_specific or node
-
-    def get_code_context(self, node: CodeNode, code_analyzer: CodeAnalyzer, file_content: str) -> str:
-        """Get the code context for a node.
+            # Extract context for this comment line
+            context_result = context_extractor.extract_context(file_path, file_content, comment.line_number)
+            
+            if context_result:
+                # If we found a context, use the code unit's range as identifier
+                _, code_context = context_result
+                unit_id = (code_context.start_line, code_context.end_line)
+            else:
+                # If no context found, use None as the identifier
+                unit_id = None
+            
+            if unit_id not in unit_to_comments:
+                unit_to_comments[unit_id] = []
+                
+            unit_to_comments[unit_id].append(comment)
+        
+        # Convert the dictionary to a list of lists
+        result = list(unit_to_comments.values())
+        
+        # Sort each group by line number
+        for group in result:
+            group.sort(key=lambda c: c.line_number)
+            
+        return result
+    
+    def group_comments_by_context(self, comments: List[PRComment], node_mapping: Dict[int, Set[int]]) -> Dict[int, List[PRComment]]:
+        """Group comments by their code context using node mapping.
 
         Args:
-            node: The code node
-            code_analyzer: The code analyzer
-            file_content: The full file content
+            comments: List of comments to group
+            node_mapping: Mapping from line numbers to node IDs
 
         Returns:
-            String containing the code context
+            Dictionary mapping node IDs to their comments
         """
-        if not node.is_valid():
-            return ""
-
-        # Get the node's text
-        node_text = code_analyzer.get_node_text(node)
-
-        # Get the node's path
-        node_path = node.get_full_path()
-
-        # Get the node's range
-        start_point, end_point = code_analyzer.get_node_range(node)
-
-        return f"""Code Context:
-Path: {node_path}
-Location: Line {start_point[0] + 1}, Column {start_point[1] + 1} to Line {end_point[0] + 1}, Column {end_point[1] + 1}
-Code:
-{node_text}"""
-
-    def parse_signature(self, code: str, language: str) -> Optional[Signature]:
-        """Parse a function signature from code.
-
-        Args:
-            code: The code containing the signature
-            language: The programming language
-
-        Returns:
-            The parsed signature if successful, None otherwise
-        """
-        return self.signature_parser.parse_signature(code, language)
+        node_comments: Dict[int, List[PRComment]] = {}
+        
+        for comment in comments:
+            line_number = comment.line_number
+            
+            # Find nodes for this line
+            if line_number in node_mapping:
+                nodes = node_mapping[line_number]
+                
+                # Use the first node (usually the most specific)
+                if nodes:
+                    node_id = next(iter(nodes))
+                    
+                    if node_id not in node_comments:
+                        node_comments[node_id] = []
+                    node_comments[node_id].append(comment)
+            else:
+                # If no node is found, log a warning
+                logger.warning(f"No node found for comment at line {line_number}")
+                
+        return node_comments 

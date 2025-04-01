@@ -25,8 +25,8 @@ class Settings(BaseSettings):
 
     # LLM settings
     LLM_API_KEY: str
-    LLM_MODEL: str = "gpt-4-turbo-preview"  # Default to OpenAI's model
-    LLM_TEMPERATURE: float = 0.7
+    LLM_MODEL: str = "o3-mini"  # Updated to OpenAI's newest model
+    LLM_TEMPERATURE: float = 0  # Lowered for more deterministic outputs
     LLM_MAX_TOKENS: int = 4000
     LLM_PROVIDER: str = "openai"  # New field to specify the LLM provider
 

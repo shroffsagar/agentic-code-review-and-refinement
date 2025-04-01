@@ -61,7 +61,8 @@ class LLMReviewer:
             api_key=settings.LLM_API_KEY,
         )
         # Configure LLM to return structured output
-        self.llm = base_llm.with_structured_output(ReviewResponse)
+        # Use method='function_calling' to avoid warnings with GPT-4
+        self.llm = base_llm.with_structured_output(ReviewResponse, method='function_calling')
 
     async def review_file(self, file: FileToReview) -> list[ReviewComment]:
         """Review a single file and return review comments.
@@ -101,9 +102,9 @@ class LLMReviewer:
 
             # Get LLM response with structured output
             response = await self.llm.ainvoke(formatted_prompt)
-            # Cast the response to ReviewResponse to satisfy type checker
-            typed_response = cast(ReviewResponse, response)
-            return typed_response.comments
+            # Validate and convert response to ReviewResponse
+            review_response: ReviewResponse = ReviewResponse.model_validate(response)
+            return review_response.comments
 
         except Exception as e:
             logger.error(f"Error reviewing file {file.file_path}: {e}")

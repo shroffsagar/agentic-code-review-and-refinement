@@ -27,10 +27,6 @@ class PRComment:
     column_number: int  # Keep for display purposes
     body: str
     category: str
-    user: str
-    created_at: datetime
-    updated_at: datetime
-    is_resolved: bool
     code_context: Optional[str] = None
     # Replace line-based tracking with node-based tracking
     node_id: Optional[int] = None  # tree-sitter's node ID
