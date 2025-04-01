@@ -31,11 +31,21 @@ class CodeContext:
         self.node_type = node_type
 
 
+class CodeReviewComment(BaseModel):
+    """A structured review comment from code review."""
+    
+    suggestion_id: str = Field(description="Unique ID of the review suggestion")
+    body: str = Field(description="Full text of the review comment")
+    file_path: str = Field(description="Path to the file where the issue was found")
+    line_number: int = Field(description="Line number where the issue was found")
+    
+    
 class ImplementedSuggestion(BaseModel):
     """A successfully implemented suggestion."""
 
     suggestion_id: str = Field(description="ID of the suggestion that was implemented")
-    location: str = Field(description="File and line location of the change, e.g. 'file.py:12'")
+    file_path: str = Field(description="Path to the file where the change was made")
+    line_number: int = Field(description="Line number where the change was applied")
 
 
 class SkippedSuggestion(BaseModel):

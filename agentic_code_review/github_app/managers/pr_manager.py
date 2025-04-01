@@ -107,7 +107,7 @@ class PRManager:
 
         return comments
 
-    def _is_comment_resolved_or_rejected(self, comment) -> bool:
+    def _is_comment_resolved_or_rejected(self, comment: PullRequestComment) -> bool:
         """Check if a pull request comment is resolved or rejected.
         
         Args:
@@ -117,42 +117,23 @@ class PRManager:
             bool: True if resolved or rejected, False otherwise
         """
         try:
-            # 1. Check for thumbs down reaction (rejected by reviewer)
-            for reaction in comment.get_reactions():
-                if reaction.content == "-1":  # Thumbs down
-                    logger.debug(f"Comment {comment.id} has been rejected (thumbs down)")
-                    return True
+            # Check for thumbs down reaction (rejected by reviewer)
+            if any(reaction.content == "-1" for reaction in comment.get_reactions()):
+                logger.debug(f"Comment {comment.id} has been rejected (thumbs down)")
+                return True
             
-            # 2. Check if comment is outdated (often indicates resolution)
-            if hasattr(comment, 'position') and comment.position is None:
+            # Check if comment is outdated (position is None indicates resolution)
+            if comment.position is None:
                 logger.debug(f"Comment {comment.id} appears to be outdated (position is None)")
                 return True
             
-            # 3. Check for replies that indicate the suggestion was implemented
-            try:
-                # Get replies to this comment
-                # Different GitHub API clients may provide different methods to access replies
-                if hasattr(comment, 'get_replies'):
-                    replies = comment.get_replies()
-                    logger.debug(f"Found {len(replies)} replies for comment {comment.id}")
-                    
-                    for reply in replies:
-                        if reply.body and "✅ This suggestion has been implemented" in reply.body:
-                            logger.info(f"Comment {comment.id} marked as implemented via reply")
-                            return True
-                            
-                # Some API versions use comments() method instead
-                elif hasattr(comment, 'comments'):
-                    # Try both accessing as property or method
-                    replies = comment.comments() if callable(comment.comments) else comment.comments
-                    logger.debug(f"Found {len(replies)} replies for comment {comment.id} via comments")
-                    
-                    for reply in replies:
-                        if reply.body and "✅ This suggestion has been implemented" in reply.body:
-                            logger.info(f"Comment {comment.id} marked as implemented via comments")
-                            return True
-            except Exception as reply_error:
-                logger.debug(f"Error checking replies for comment {comment.id}: {reply_error}")
+            # Check for replies that indicate the suggestion was implemented
+            for reply in comment.replies:
+                if reply.body.strip() == "✅ This suggestion has been implemented":
+                    logger.info(f"Comment {comment.id} marked as implemented via reply")
+                    return True
+                else:
+                    logger.debug(f"Reply body: {reply.body}")
             
             return False
         except Exception as e:

@@ -4,7 +4,7 @@ import logging
 
 from ...llm_refiner.llm_client import LLMClient
 from ...llm_refiner.refinement_agent import RefinementAgent
-from ...llm_reviewer import LLMReviewer, ReviewComment
+from ...llm_reviewer import LLMReviewer
 from ...models import FileToReview
 from ..constants import REFINE_LABEL, REVIEW_LABEL
 from ..decorators import with_pr_state_management
@@ -70,8 +70,8 @@ class AgentHandler:
                     self.pr_manager.post_review_comment(
                         context=context,
                         file_path=file_path,
-                        line_number=comment.line,
-                        message=comment.body
+                        line_number=comment.line_number,
+                        message=f"# {comment.category} - {comment.severity}\n\n{comment.description}\n\n**Suggestion**: {comment.suggestion}"
                     )
                 except Exception as e:
                     logger.error(f"Failed to post comment for {file_path}: {e}")

@@ -17,7 +17,7 @@ from .comment_processor import CommentProcessor
 from .context_extractor import ContextExtractor
 from .incremental_patcher import IncrementalPatcher
 from .llm_client import LLMClient
-from .models import RefinementResponse, FileModification, ImplementedSuggestion, SkippedSuggestion
+from .models import RefinementResponse, FileModification, ImplementedSuggestion, SkippedSuggestion, CodeReviewComment
 from .prompts.refinement_prompt import code_refinement_prompt
 
 logger = logging.getLogger(__name__)
@@ -270,14 +270,21 @@ class RefinementAgent:
             RefinementResponse if successful, None otherwise
         """
         try:
-            # Format comments for the prompt
-            comments_text = "\n".join(
-                f"REVIEW SUGGESTION (ID: {comment.id}):\n{comment.body}\n"
-                for comment in comments
-            )
+            # Convert PR comments to structured CodeReviewComment objects
+            structured_comments = []
             
-            # Format additional context
-            additional_context_text = json.dumps(additional_context, indent=2)
+            for comment in comments:
+                # Create structured comment with minimal processing
+                structured_comment = CodeReviewComment(
+                    suggestion_id=str(comment.id),
+                    body=comment.body,
+                    file_path=file_path,
+                    line_number=comment.line_number
+                )
+                structured_comments.append(structured_comment)
+            
+            # Convert structured comments to JSON for the prompt
+            comments_json = json.dumps([comment.model_dump() for comment in structured_comments], indent=2)
             
             # Create format instructions for RefinementResponse
             format_instructions = """
@@ -290,7 +297,8 @@ class RefinementAgent:
               "implemented_suggestions": [
                 {
                   "suggestion_id": "ID from the input",
-                  "location": "file:line"
+                  "file_path": "Path to the file being modified",
+                  "line_number": line_number_where_change_was_applied
                 }
               ],
               "skipped_suggestions": [
@@ -305,9 +313,8 @@ class RefinementAgent:
             
             # Format the prompt using the template
             formatted_prompt = code_refinement_prompt.format(
-                file_path=file_path,
                 original_code=code_snippet,
-                comments=comments_text,
+                comments=comments_json,
                 format_instructions=format_instructions
             )
             
@@ -334,7 +341,8 @@ class RefinementAgent:
                     response.implemented_suggestions.append(
                         ImplementedSuggestion(
                             suggestion_id=comment_id,
-                            location=f"{file_path}:{comment.line_number}"
+                            file_path=file_path,
+                            line_number=comment.line_number
                         )
                     )
                     

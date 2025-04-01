@@ -44,7 +44,7 @@ The following diagram illustrates the high-level architecture and workflow of th
 - [x] Response validation and parsing
 - [x] Test PR creation and validation
 
-### Phase 4: Refinement Agent Implementation (Completed)
+### Phase 4: Advanced Features (Completed)
 - [x] Code Analysis Foundation
   - [x] Tree-sitter-graph integration
   - [x] Graph-based code structure
@@ -66,9 +66,15 @@ The following diagram illustrates the high-level architecture and workflow of th
 - [x] Advanced Features
   - [x] Robust node tracking with stable references
   - [x] Comprehensive code context analysis
-  - [x] Signature change handling
   - [x] Multi-level validation system
   - [x] Graceful error recovery
+
+### Scope Limitations
+The system has the following scope limitations to maintain reliability and simplicity:
+- Does not handle function signature changes or their impacts on dependent code
+- Focuses on single-file code modifications
+- Requires manual review of changes that affect multiple files
+- Does not automatically update test cases
 
 ### Phase 5: Testing and Quality Assurance (In Progress)
 - [x] Testing framework setup

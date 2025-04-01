@@ -17,7 +17,8 @@ logger = logging.getLogger(__name__)
 class ReviewComment(BaseModel):
     """Model for a single review comment."""
 
-    location: str = Field(description="File and line number where the issue was found")
+    file_path: str = Field(description="Path to the file where the issue was found")
+    line_number: int = Field(description="Line number where the issue was found")
     category: str = Field(
         description="Category of the issue",
         # Define valid categories
@@ -56,13 +57,14 @@ class LLMReviewer:
 
         base_llm = ChatOpenAI(
             model_name=model_name or settings.LLM_MODEL,
-            temperature=temperature or settings.LLM_TEMPERATURE,
             max_tokens=max_tokens or settings.LLM_MAX_TOKENS,
             api_key=settings.LLM_API_KEY,
+            disabled_params={"parallel_tool_calls": None}
         )
+        logger.info(f"Using model: {settings.LLM_MODEL}")
+        logger.info(f"Using temperature: {settings.LLM_MAX_TOKENS}")
         # Configure LLM to return structured output
-        # Use method='function_calling' to avoid warnings with GPT-4
-        self.llm = base_llm.with_structured_output(ReviewResponse, method='function_calling')
+        self.llm = base_llm.with_structured_output(ReviewResponse)
 
     async def review_file(self, file: FileToReview) -> list[ReviewComment]:
         """Review a single file and return review comments.
@@ -82,7 +84,8 @@ class LLMReviewer:
             {
               "comments": [
                 {
-                  "location": "string (format: [filename:line_number], e.g. [main.py:42])",
+                  "file_path": "string (e.g. main.py)",
+                  "line_number": "integer (e.g. 42)",
                   "category": "string (one of: Quality, Performance, Security, Testing, Maintainability, Coverage)",
                   "severity": "string (one of: High, Medium, Low)",
                   "description": "string (detailed description of the issue)",
@@ -101,10 +104,8 @@ class LLMReviewer:
             )
 
             # Get LLM response with structured output
-            response = await self.llm.ainvoke(formatted_prompt)
-            # Validate and convert response to ReviewResponse
-            review_response: ReviewResponse = ReviewResponse.model_validate(response)
-            return review_response.comments
+            response: ReviewResponse = await self.llm.ainvoke(formatted_prompt)
+            return response.comments
 
         except Exception as e:
             logger.error(f"Error reviewing file {file.file_path}: {e}")

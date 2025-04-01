@@ -9,9 +9,7 @@ from langchain_core.prompts import PromptTemplate
 # Template for code refinement based on review comments
 CODE_REFINEMENT_TEMPLATE = """
 You are an expert software engineer implementing code changes based on specific review comments.
-You will be provided with a file path, original code, and review comments. Your task is to incorporate the review comments into the original code.
-
-File: {file_path}
+You will be provided with original code and structured review comments. Your task is to incorporate the review comments into the original code.
 
 ORIGINAL CODE:
 ```
@@ -19,9 +17,7 @@ ORIGINAL CODE:
 ```
 
 REVIEW COMMENTS:
-```
 {comments}
-```
 
 KEY RULES:
 1. Implement EXACTLY what each review suggestion requires and do not make any changes to the code that are not requested in the suggestion. 
@@ -38,7 +34,6 @@ Return a structured response in this format:
 # Create a PromptTemplate instance
 code_refinement_prompt = PromptTemplate(
     input_variables=[
-        "file_path", 
         "original_code", 
         "comments", 
         "format_instructions"
