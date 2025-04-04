@@ -2,63 +2,44 @@
 
 import logging
 import sys
+from typing import NoReturn
 
-from dotenv import load_dotenv
+import uvicorn
 
-from . import GitHubApp
-from .config import setup_logging
+from agentic_code_review.config import settings
+from agentic_code_review.github_app.server import GitHubApp
+from agentic_code_review.utils.logging import setup_logging
 
-
-def init() -> None:
-    """Initialize the application environment.
-
-    This function:
-    1. Loads environment variables from .env file
-    2. Sets up logging configuration
-    """
-    # Load environment variables
-    load_dotenv()
-
-    # Configure logging
-    setup_logging()
+logger = logging.getLogger(__name__)
 
 
-def run_app(host: str = "0.0.0.0", port: int = 3000) -> None:
-    """Run the GitHub App server.
+def run_app() -> NoReturn:
+    """Run the GitHub App server."""
+    # Set up logging with debug level if DEBUG is enabled
+    log_level = "DEBUG" if settings.DEBUG else settings.LOG_LEVEL
+    setup_logging(level=log_level)
 
-    Args:
-        host: The host to bind to
-        port: The port to listen on
-    """
-    app = GitHubApp()
-    app.run(host=host, port=port)
+    # Log startup information
+    logger.info("Starting GitHub App server...")
+    logger.info("Host: %s", settings.HOST)
+    logger.info("Port: %d", settings.PORT)
+    logger.info("Debug mode: %s", "enabled" if settings.DEBUG else "disabled")
 
-
-def main() -> None:
-    """Main entry point for the GitHub App server.
-
-    This function:
-    1. Initializes the application environment
-    2. Starts the GitHub App server
-    3. Handles any startup errors
-    """
-    try:
-        # Initialize environment
-        init()
-
-        # Get logger after setup
-        logger = logging.getLogger(__name__)
-        logger.info("Starting GitHub App server...")
-
-        # Run the application
-        run_app()
-        return None
-
-    except Exception:
-        logger = logging.getLogger(__name__)
-        logger.exception("Failed to start GitHub App server:")
-        sys.exit(1)
+    # Create and run the app
+    github_app = GitHubApp()
+    github_app.app.run(
+        host=settings.HOST,
+        port=settings.PORT,
+        debug=settings.DEBUG
+    )
 
 
 if __name__ == "__main__":
-    main()
+    try:
+        run_app()
+    except KeyboardInterrupt:
+        logger.info("Shutting down GitHub App server...")
+        sys.exit(0)
+    except Exception as e:
+        logger.error("Error running GitHub App server: %s", str(e))
+        sys.exit(1)

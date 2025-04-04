@@ -4,6 +4,8 @@ import logging
 import os
 from logging.handlers import RotatingFileHandler
 
+from agentic_code_review.config import settings
+
 
 def setup_logging() -> None:
     """Configure logging for the application.
@@ -20,19 +22,22 @@ def setup_logging() -> None:
     log_file = os.path.join(logs_dir, "github_app.log")
     formatter = logging.Formatter("%(asctime)s - %(name)s - %(levelname)s - %(message)s")
 
+    # Convert log level string to logging constant
+    log_level = getattr(logging, settings.LOG_LEVEL.upper())
+
     # File handler - 10MB per file, keep 5 backups
     file_handler = RotatingFileHandler(log_file, maxBytes=10485760, backupCount=5)
     file_handler.setFormatter(formatter)
-    file_handler.setLevel(logging.INFO)
+    file_handler.setLevel(log_level)
 
     # Console handler
     console_handler = logging.StreamHandler()
     console_handler.setFormatter(formatter)
-    console_handler.setLevel(logging.INFO)
+    console_handler.setLevel(log_level)
 
     # Root logger configuration
     root_logger = logging.getLogger()
-    root_logger.setLevel(logging.INFO)
+    root_logger.setLevel(log_level)
 
     # Remove any existing handlers to avoid duplicates
     for handler in root_logger.handlers[:]:

@@ -6,10 +6,11 @@ handling webhook events and GitHub API interactions.
 
 import asyncio
 import logging
-import os
 from typing import Any
 
 from flask import Flask, request
+
+from agentic_code_review.config import settings
 
 from .auth.authenticator import GitHubAuthenticator
 from .handlers.agent_handler import AgentHandler
@@ -25,10 +26,10 @@ class GitHubApp:
     def __init__(self) -> None:
         """Initialize the GitHub App server."""
         self.authenticator = GitHubAuthenticator(
-            app_id=os.environ["GITHUB_APP_ID"],
-            private_key=os.environ["GITHUB_PRIVATE_KEY"],
-            webhook_secret=os.environ["GITHUB_WEBHOOK_SECRET"],
-            enterprise_hostname=os.getenv("GITHUB_ENTERPRISE_HOSTNAME"),
+            app_id=settings.GITHUB_APP_ID,
+            private_key=settings.GITHUB_PRIVATE_KEY,
+            webhook_secret=settings.GITHUB_WEBHOOK_SECRET,
+            enterprise_hostname=settings.GITHUB_ENTERPRISE_URL,
         )
 
         self.pr_manager = PRManager(self.authenticator)
@@ -133,7 +134,7 @@ class GitHubApp:
             # Create PR context
             pr_context = PRContext(
                 installation_id=int(installation_id) if installation_id else 0,
-                repository=repository,
+                repo=repository,
                 pr_number=int(pr_number) if pr_number else 0,
             )
 
@@ -151,19 +152,11 @@ class GitHubApp:
                 # Pass to the appropriate handler based on label
                 if label_name == "agentic-review":
                     loop.run_until_complete(
-                        self.agent_handler.handle_review(
-                            installation_id=pr_context.installation_id,
-                            repository=pr_context.repository,
-                            pr_number=pr_context.pr_number,
-                        )
+                        self.agent_handler.handle_review(pr_context)
                     )
                 elif label_name == "agentic-refine":
                     loop.run_until_complete(
-                        self.agent_handler.handle_refine(
-                            installation_id=pr_context.installation_id,
-                            repository=pr_context.repository,
-                            pr_number=pr_context.pr_number,
-                        )
+                        self.agent_handler.handle_refinement(pr_context)
                     )
                 else:
                     logger.info(f"⏭️ Ignoring non-matching label: {label_name}")

@@ -43,32 +43,32 @@ def with_pr_state_management(operation_name: str, operation_label: str, success_
         is_async = inspect.iscoroutinefunction(func)
 
         @functools.wraps(func)
-        async def async_wrapper(self, installation_id, repository, pr_number, *args, **kwargs):
+        async def async_wrapper(self, context: PRContext, *args, **kwargs):
             return await _handle_operation(
                 self,
                 func,
                 operation_name,
                 operation_label,
                 success_message,
-                installation_id,
-                repository,
-                pr_number,
+                context.installation_id,
+                context.repo,
+                context.pr_number,
                 True,
                 *args,
                 **kwargs,
             )
 
         @functools.wraps(func)
-        def sync_wrapper(self, installation_id, repository, pr_number, *args, **kwargs):
+        def sync_wrapper(self, context: PRContext, *args, **kwargs):
             return _handle_operation(
                 self,
                 func,
                 operation_name,
                 operation_label,
                 success_message,
-                installation_id,
-                repository,
-                pr_number,
+                context.installation_id,
+                context.repo,
+                context.pr_number,
                 False,
                 *args,
                 **kwargs,
@@ -89,7 +89,11 @@ def with_pr_state_management(operation_name: str, operation_label: str, success_
         ):
             """Handle the PR operation with proper state management."""
             # Initialize PR context
-            context = PRContext(installation_id, repository, pr_number)
+            context = PRContext(
+                installation_id=installation_id,
+                repo=repository,  # This is already a dict from the webhook payload
+                pr_number=pr_number,
+            )
             logger.info(f"Starting {operation_name} for PR #{pr_number}")
             success = False
 

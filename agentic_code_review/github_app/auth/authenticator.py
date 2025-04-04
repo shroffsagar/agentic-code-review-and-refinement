@@ -8,6 +8,8 @@ from typing import Any
 
 from github import GithubIntegration
 
+from agentic_code_review.config import settings
+
 logger = logging.getLogger(__name__)
 
 # Constants to avoid hardcoding key markers in the code
@@ -38,10 +40,12 @@ class GitHubAuthenticator:
         formatted_key = self._format_private_key(private_key)
         logger.info("Private key formatted")
 
-        base_url = f"https://{enterprise_hostname}/api/v3" if enterprise_hostname else "https://api.github.com"
+        # Use enterprise hostname if provided, otherwise use configured API URL
+        base_url = f"https://{enterprise_hostname}/api/v3" if enterprise_hostname else settings.GITHUB_API_URL
 
         try:
             logger.info(f"Initializing GitHub App integration with App ID: {app_id}")
+            logger.info(f"Using GitHub API URL: {base_url}")
             self.integration = GithubIntegration(int(app_id), formatted_key, base_url=base_url)
             logger.info("GitHub App integration initialized successfully")
         except Exception as e:
@@ -126,4 +130,22 @@ class GitHubAuthenticator:
             return self.integration.get_github_for_installation(installation_id)
         except Exception as e:
             logger.error(f"Error getting installation client: {e}")
+            raise
+
+    def get_token(self) -> str:
+        """Get an access token for API calls.
+        
+        Note: This is a simplified implementation for development purposes.
+        In production, you should manage tokens properly.
+        
+        Returns:
+            str: The access token
+        """
+        try:
+            logger.info("Getting GitHub token from environment...")
+            # For initial testing, using the LLM_API_KEY instead of proper token management
+            # In production, you'd want to use proper installation tokens
+            return settings.GITHUB_WEBHOOK_SECRET
+        except Exception as e:
+            logger.error(f"Error getting token: {e}")
             raise

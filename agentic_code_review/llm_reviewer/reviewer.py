@@ -1,27 +1,24 @@
 """LLM-powered code reviewer implementation."""
 
 import logging
-import os
 from typing import cast
 
-from dotenv import load_dotenv
 from langchain_core.pydantic_v1 import BaseModel, Field
 from langchain_openai import ChatOpenAI
-from pydantic import SecretStr
+
+from agentic_code_review.config import settings
 
 from ..models import FileToReview
 from .prompts.review_prompts import code_review_prompt, test_review_prompt
 
 logger = logging.getLogger(__name__)
 
-# Load environment variables
-load_dotenv()
-
 
 class ReviewComment(BaseModel):
     """Model for a single review comment."""
 
-    location: str = Field(description="File and line number where the issue was found")
+    file_path: str = Field(description="Path to the file where the issue was found")
+    line_number: int = Field(description="Line number where the issue was found")
     category: str = Field(
         description="Category of the issue",
         # Define valid categories
@@ -43,25 +40,29 @@ class LLMReviewer:
 
     def __init__(
         self,
-        model_name: str = "gpt-4-turbo-preview",
-        temperature: float = 0.0,
+        model_name: str = None,
+        temperature: float = None,
+        max_tokens: int = None,
     ) -> None:
         """Initialize the LLM reviewer.
 
         Args:
-            model_name: Name of the OpenAI model to use
-            temperature: Temperature for model responses (0.0 = deterministic)
+            model_name: Optional name of the LLM model to use (defaults to settings.LLM_MODEL)
+            temperature: Optional temperature for model responses (defaults to settings.LLM_TEMPERATURE)
+            max_tokens: Optional maximum tokens for model responses (defaults to settings.LLM_MAX_TOKENS)
         """
-        api_key = os.getenv("OPENAI_API_KEY")
-        if not api_key:
-            logger.error("OPENAI_API_KEY environment variable is not set")
-            raise ValueError("OPENAI_API_KEY environment variable is not set")
+        if not settings.LLM_API_KEY:
+            logger.error("LLM_API_KEY environment variable is not set")
+            raise ValueError("LLM_API_KEY environment variable is not set")
 
         base_llm = ChatOpenAI(
-            model=model_name,
-            temperature=temperature,
-            api_key=SecretStr(api_key),
+            model_name=model_name or settings.LLM_MODEL,
+            max_tokens=max_tokens or settings.LLM_MAX_TOKENS,
+            api_key=settings.LLM_API_KEY,
+            disabled_params={"parallel_tool_calls": None}
         )
+        logger.info(f"Using model: {settings.LLM_MODEL}")
+        logger.info(f"Using temperature: {settings.LLM_MAX_TOKENS}")
         # Configure LLM to return structured output
         self.llm = base_llm.with_structured_output(ReviewResponse)
 
@@ -83,7 +84,8 @@ class LLMReviewer:
             {
               "comments": [
                 {
-                  "location": "string (format: [filename:line_number], e.g. [main.py:42])",
+                  "file_path": "string (e.g. main.py)",
+                  "line_number": "integer (e.g. 42)",
                   "category": "string (one of: Quality, Performance, Security, Testing, Maintainability, Coverage)",
                   "severity": "string (one of: High, Medium, Low)",
                   "description": "string (detailed description of the issue)",
@@ -102,10 +104,8 @@ class LLMReviewer:
             )
 
             # Get LLM response with structured output
-            response = await self.llm.ainvoke(formatted_prompt)
-            # Cast the response to ReviewResponse to satisfy type checker
-            typed_response = cast(ReviewResponse, response)
-            return typed_response.comments
+            response: ReviewResponse = await self.llm.ainvoke(formatted_prompt)
+            return response.comments
 
         except Exception as e:
             logger.error(f"Error reviewing file {file.file_path}: {e}")

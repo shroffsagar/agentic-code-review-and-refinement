@@ -1,163 +1,160 @@
-"""Comment processor for the refinement agent.
+"""Process and group PR comments for refinement.
 
-This module handles the retrieval and processing of unresolved review comments,
-preparing them for the code refinement process.
+This module provides functionality for processing and grouping PR comments
+to prepare them for refinement.
 """
 
 import logging
-import re
-from dataclasses import dataclass
+from typing import Dict, List, Optional, Set, Tuple
+from tree_sitter import Node
 
-from ..github_app.managers.pr_manager import PRComment, PRContext, PRManager
+from agentic_code_review.github_app.models import PRComment
+from .context_extractor import ContextExtractor
 
 logger = logging.getLogger(__name__)
 
 
-@dataclass
-class ProcessedComment:
-    """A processed review comment ready for refinement.
-
-    This class contains the original PR comment along with additional context
-    and processing information needed for refinement.
-    """
-
-    comment: PRComment
-    file_path: str
-    line_number: int | None
-    category: str | None = None
-    severity: str | None = None
-    description: str | None = None
-    suggestion: str | None = None
-
-    @property
-    def is_actionable(self) -> bool:
-        """Determine if this comment contains an actionable suggestion."""
-        return self.suggestion is not None and len(self.suggestion.strip()) > 0 and self.file_path is not None and self.line_number is not None
-
-
 class CommentProcessor:
-    """Processes PR comments to prepare them for code refinement."""
+    """Process and group PR comments for refinement."""
 
-    # Regular expressions for parsing review comment format
-    CATEGORY_SEVERITY_PATTERN = re.compile(r"(Quality|Performance|Security|Testing|Maintainability|Coverage) Issue - (High|Medium|Low) Severity")
-    LOCATION_PATTERN = re.compile(r"Location: \[([^:\]]+):(\d+)\]")
-    DESCRIPTION_PATTERN = re.compile(r"Description:\s*(.*?)(?=\n\nSuggestion:|\Z)", re.DOTALL)
-    SUGGESTION_PATTERN = re.compile(r"Suggestion:\s*(.*?)(?=\Z)", re.DOTALL)
+    def __init__(self):
+        """Initialize the comment processor."""
+        pass
 
-    def __init__(self, pr_manager: PRManager) -> None:
-        """Initialize the comment processor.
+    def group_comments_by_file(self, comments: List[PRComment]) -> Dict[str, List[PRComment]]:
+        """Group comments by their file path.
 
         Args:
-            pr_manager: The PR manager to use for fetching comments
-        """
-        self.pr_manager = pr_manager
-
-    def _parse_comment_body(self, body: str) -> tuple[str | None, str | None, str | None, int | None, str | None, str | None]:
-        """Parse a review comment body to extract structured information.
-
-        Args:
-            body: The comment body text
+            comments: List of comments to group
 
         Returns:
-            A tuple containing (category, severity, file_path, line_number, description, suggestion)
+            Dictionary mapping file paths to their comments
         """
-        # Default values
-        category = None
-        severity = None
-        file_path = None
-        line_number = None
-        description = None
-        suggestion = None
-
-        # Extract category and severity
-        category_severity_match = self.CATEGORY_SEVERITY_PATTERN.search(body)
-        if category_severity_match:
-            category = category_severity_match.group(1)
-            severity = category_severity_match.group(2)
-
-        # Extract location (file path and line number)
-        location_match = self.LOCATION_PATTERN.search(body)
-        if location_match:
-            file_path = location_match.group(1)
-            try:
-                line_number = int(location_match.group(2))
-            except ValueError:
-                logger.warning(f"Failed to parse line number from: {location_match.group(2)}")
-
-        # Extract description
-        description_match = self.DESCRIPTION_PATTERN.search(body)
-        if description_match:
-            description = description_match.group(1).strip()
-
-        # Extract suggestion
-        suggestion_match = self.SUGGESTION_PATTERN.search(body)
-        if suggestion_match:
-            suggestion = suggestion_match.group(1).strip()
-
-        return category, severity, file_path, line_number, description, suggestion
-
-    async def get_unresolved_comments(self, context: PRContext) -> list[ProcessedComment]:
-        """Retrieve and process all unresolved comments from a PR.
-
-        Args:
-            context: The PR context
-
-        Returns:
-            A list of processed comments ready for refinement
-
-        Raises:
-            Exception: If there's an error processing the comments
-        """
-        try:
-            # Get raw comments from PR
-            raw_comments = self.pr_manager.get_unresolved_comments(context)
-            logger.info(f"Retrieved {len(raw_comments)} unresolved comments from PR #{context.pr_number}")
-
-            # Process each comment
-            processed_comments = []
-            for comment in raw_comments:
-                # Parse the structured comment body
-                category, severity, file_path, line_number, description, suggestion = self._parse_comment_body(comment.body)
-
-                # Use the parsed file path and line number if available, otherwise fall back to GitHub's data
-                file_path = file_path or comment.path
-                line_number = line_number or comment.position
-
-                processed = ProcessedComment(
-                    comment=comment,
-                    file_path=file_path,
-                    line_number=line_number,
-                    category=category,
-                    severity=severity,
-                    description=description,
-                    suggestion=suggestion,
-                )
-
-                if processed.is_actionable:
-                    processed_comments.append(processed)
-
-            logger.info(f"Processed {len(processed_comments)} actionable comments from PR #{context.pr_number}")
-            return processed_comments
-
-        except Exception as e:
-            logger.error(f"Error processing comments for PR #{context.pr_number}: {e}")
-            raise
-
-    def group_comments_by_file(self, comments: list[ProcessedComment]) -> dict[str, list[ProcessedComment]]:
-        """Group comments by the file they apply to.
-
-        Args:
-            comments: The list of processed comments to group
-
-        Returns:
-            A dictionary mapping file paths to lists of comments
-        """
-        result: dict[str, list[ProcessedComment]] = {}
-
+        file_comments: Dict[str, List[PRComment]] = {}
+        
         for comment in comments:
-            if comment.file_path not in result:
-                result[comment.file_path] = []
-            result[comment.file_path].append(comment)
+            if comment.path not in file_comments:
+                file_comments[comment.path] = []
+            file_comments[comment.path].append(comment)
+            
+        return file_comments
+        
+    def group_comments_by_proximity(self, comments: List[PRComment], proximity_threshold: int = 10) -> List[List[PRComment]]:
+        """Group comments by their proximity in the file.
 
-        logger.info(f"Grouped comments into {len(result)} files")
+        Comments that are within proximity_threshold lines of each other
+        are likely to be related and are grouped together.
+
+        Args:
+            comments: List of comments to group
+            proximity_threshold: Maximum line distance for comments to be considered related
+
+        Returns:
+            List of comment groups
+        """
+        if not comments:
+            return []
+            
+        # Sort comments by line number
+        sorted_comments = sorted(comments, key=lambda c: c.line_number)
+        
+        # Initialize groups
+        groups: List[List[PRComment]] = [[sorted_comments[0]]]
+        
+        # Group comments based on proximity
+        for comment in sorted_comments[1:]:
+            last_group = groups[-1]
+            last_comment = last_group[-1]
+            
+            # If the comment is within the proximity threshold of the last comment in the group,
+            # add it to the same group
+            if abs(comment.line_number - last_comment.line_number) <= proximity_threshold:
+                last_group.append(comment)
+            else:
+                # Start a new group
+                groups.append([comment])
+                
+        return groups
+        
+    def group_comments_by_code_unit(self, comments: List[PRComment], file_content: str, file_path: str) -> List[List[PRComment]]:
+        """Group comments by the code unit (function/method/class) they belong to.
+
+        Comments that belong to the same code unit (function, method, class) are grouped together
+        regardless of their line distance.
+
+        Args:
+            comments: List of comments to group
+            file_content: Content of the file
+            file_path: Path to the file
+
+        Returns:
+            List of comment groups, where each group contains comments for the same code unit
+        """
+        if not comments:
+            return []
+            
+        # Create a context extractor
+        context_extractor = ContextExtractor()
+        
+        # Map for tracking which code unit each comment belongs to
+        # We'll use the code unit's start line and end line as its identifier
+        unit_to_comments: Dict[Optional[Tuple[int, int]], List[PRComment]] = {}
+        
+        # Assign each comment to its containing code unit
+        for comment in comments:
+            # Extract context for this comment line
+            context_result = context_extractor.extract_context(file_path, file_content, comment.line_number)
+            
+            if context_result:
+                # If we found a context, use the code unit's range as identifier
+                _, code_context = context_result
+                unit_id = (code_context.start_line, code_context.end_line)
+            else:
+                # If no context found, use None as the identifier
+                unit_id = None
+            
+            if unit_id not in unit_to_comments:
+                unit_to_comments[unit_id] = []
+                
+            unit_to_comments[unit_id].append(comment)
+        
+        # Convert the dictionary to a list of lists
+        result = list(unit_to_comments.values())
+        
+        # Sort each group by line number
+        for group in result:
+            group.sort(key=lambda c: c.line_number)
+            
         return result
+    
+    def group_comments_by_context(self, comments: List[PRComment], node_mapping: Dict[int, Set[int]]) -> Dict[int, List[PRComment]]:
+        """Group comments by their code context using node mapping.
+
+        Args:
+            comments: List of comments to group
+            node_mapping: Mapping from line numbers to node IDs
+
+        Returns:
+            Dictionary mapping node IDs to their comments
+        """
+        node_comments: Dict[int, List[PRComment]] = {}
+        
+        for comment in comments:
+            line_number = comment.line_number
+            
+            # Find nodes for this line
+            if line_number in node_mapping:
+                nodes = node_mapping[line_number]
+                
+                # Use the first node (usually the most specific)
+                if nodes:
+                    node_id = next(iter(nodes))
+                    
+                    if node_id not in node_comments:
+                        node_comments[node_id] = []
+                    node_comments[node_id].append(comment)
+            else:
+                # If no node is found, log a warning
+                logger.warning(f"No node found for comment at line {line_number}")
+                
+        return node_comments 
