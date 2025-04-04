@@ -111,6 +111,120 @@ class IncrementalPatcher:
         self.modifications.append(modification)
         return modification
         
+    def register_imports_modification(self, new_imports: str, suggestion_ids: List[str]) -> FileModification:
+        """Register a modification to add imports at the top of the file.
+        
+        Args:
+            new_imports: The new import statements to add.
+            suggestion_ids: IDs of the suggestions prompting this modification.
+            
+        Returns:
+            A FileModification instance, or None if no new imports are provided.
+        """
+        if not new_imports or new_imports.strip() == "":
+            return None  # Nothing to insert
+
+        # Find where to insert imports (after any header items)
+        insertion_line, insertion_byte = self._find_imports_insertion_point()
+        
+        # Check if we need to add a newline before the import
+        modified_text = new_imports + "\n"  # Always end with a newline
+        
+        # If we're not at the beginning of the file, check if we need to insert a newline
+        if insertion_byte > 0:
+            # Check if there's already a newline at the insertion point
+            needs_newline = insertion_byte < len(self.current_content) and self.current_content[insertion_byte-1] != '\n'
+            if needs_newline:
+                # If there's no newline before our insertion point, add one
+                modified_text = "\n" + modified_text
+                logger.debug(f"Adding leading newline before imports at byte position {insertion_byte}")
+            else:
+                logger.debug(f"No need for leading newline before imports at byte position {insertion_byte}")
+        
+        modification = FileModification(
+            file_path=self.file_path,
+            original_node_text="",  # We're inserting new content
+            modified_text=modified_text,  # Use our properly formatted text
+            start_line=insertion_line + 1,  # Convert 0-based to 1-based
+            end_line=insertion_line + 1,
+            start_byte=insertion_byte,
+            end_byte=insertion_byte,
+            suggestion_ids=suggestion_ids
+        )
+
+        # Apply this modification first
+        self.modifications.insert(0, modification)
+        return modification
+
+    def _find_imports_insertion_point(self) -> Tuple[int, int]:
+        """
+        Determine the best insertion point for import statements.
+        
+        Priority:
+          1. After the last import statement.
+          2. For Java, after the package declaration if no imports.
+          3. For Python, after the module docstring if no imports.
+          4. For JS/TS, after header comments or hashbang.
+          5. Otherwise, beginning of the file.
+          
+        Returns:
+            A tuple (line_number, byte_position) for the insertion point.
+        """
+        if not self.tree or not self.tree.root_node.children:
+            return (0, 0)  # Empty file or parse issue
+
+        last_import = None
+        last_package = None
+        module_docstring = None
+        last_header = None
+
+        # Iterate through top-level nodes only
+        for idx, node in enumerate(self.tree.root_node.children):
+            # For Python files
+            if self.language_id == "python":
+                # If the very first node is a docstring, mark it
+                if idx == 0 and node.type == "string":
+                    module_docstring = node
+                elif node.type in ("import_statement", "import_from_statement"):
+                    last_import = node
+                # Stop when a non-header element is encountered
+                elif node.type not in ("string", "import_statement", "import_from_statement"):
+                    break
+
+            # For Java files
+            elif self.language_id == "java":
+                if node.type == "package_declaration":
+                    last_package = node
+                elif node.type == "import_declaration":
+                    last_import = node
+                else:
+                    break
+
+            # For JavaScript/TypeScript
+            elif self.language_id in ("javascript", "typescript"):
+                if node.type == "import_statement":
+                    last_import = node
+                elif node.type in ("comment", "hashbang"):
+                    # Save the header comment that appears last
+                    last_header = node
+                else:
+                    break
+
+            # For any unsupported languages, we default to the top
+            else:
+                break
+
+        # Choose insertion point based on priority
+        if last_import:
+            return (last_import.end_point[0], last_import.end_byte)
+        if self.language_id == "java" and last_package:
+            return (last_package.end_point[0], last_package.end_byte)
+        if self.language_id == "python" and module_docstring:
+            return (module_docstring.end_point[0], module_docstring.end_byte)
+        if self.language_id in ("javascript", "typescript") and last_header:
+            return (last_header.end_point[0], last_header.end_byte)
+        return (0, 0)
+        
     def apply_modification(self, modification: FileModification) -> PatchResult:
         """Apply a single modification to the current content.
         
@@ -383,12 +497,9 @@ class IncrementalPatcher:
             for msg in error_messages[:5]:  # Show only first 5 errors
                 logger.error(f"  {msg}")
                 
-            # For minor syntax issues, we could still attempt to use the code
-            if error_count <= 2:
-                logger.warning("Allowing code with minor syntax issues to proceed")
-                return True
-                
-        return not has_errors
+            return False
+        else:
+            return True
         
     def get_implemented_suggestions(self) -> List[str]:
         """Get the IDs of all implemented suggestions.

@@ -24,7 +24,10 @@ KEY RULES:
 For example, if a suggestion mentions "use lazy loading for this expensive operation", actually implement the lazy loading pattern as requested, not just make syntax changes.
 2. Your code implementation should follow the suggestion given - verify this.
 3. Pay special attention to algorithm suggestions and performance optimizations
-
+4. IMPORTANT: Your modified_code field should COMPLETELY REPLACE the original code - do not include both versions or mix them together.
+5. IMPORTANT: Your modified code field should not contain any import statements.
+5. IMPORTANT: Place any new import statements in the 'new_imports' field
+6. Only include imports needed for your changes that aren't already in the file.
 
 RETURN FORMAT:
 Return a structured response in this format:

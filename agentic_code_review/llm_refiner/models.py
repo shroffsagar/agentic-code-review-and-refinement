@@ -62,7 +62,13 @@ class RefinementResponse(BaseModel):
     file_path: str = Field(description="Path to the file being modified")
     unit_start_line: int = Field(description="Line number where unit begins (1-based)")
     unit_end_line: int = Field(description="Line number where unit ends (1-based)")
-    modified_code: str = Field(description="The modified code with all changes implemented")
+    modified_code: str = Field(
+        description="The modified code with all changes implemented. DO NOT include any import statements here."
+    )
+    new_imports: Optional[str] = Field(
+        default=None,
+        description="ALL import statements needed for the code (both existing and new). Include both library imports and local module imports here."
+    )
     implemented_suggestions: List[ImplementedSuggestion] = Field(
         default_factory=list,
         description="List of suggestions that were successfully implemented"

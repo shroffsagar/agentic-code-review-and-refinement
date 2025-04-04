@@ -226,6 +226,13 @@ class RefinementAgent:
                 # Register the modification with the patcher
                 # Ensure all suggestion IDs are strings
                 suggestion_ids = [str(comment.id) for comment in unit_comments]
+                
+                # Register import modifications if any new imports were provided
+                if response.new_imports and response.new_imports.strip():
+                    logger.info(f"Registering new imports: {response.new_imports}")
+                    patcher.register_imports_modification(response.new_imports, suggestion_ids)
+                    
+                # Register the code modification
                 patcher.register_modification(node, response.modified_code, suggestion_ids)
                 
             # Apply all modifications
@@ -294,6 +301,7 @@ class RefinementAgent:
               "unit_start_line": line_number_where_unit_begins,
               "unit_end_line": line_number_where_unit_ends,
               "modified_code": "The modified code region with all accepted changes implemented",
+              "new_imports": "Any new import statements needed for the changes",
               "implemented_suggestions": [
                 {
                   "suggestion_id": "ID from the input",

@@ -102,16 +102,17 @@ class PRManager:
         # Get all review comments directly from PR and filter unresolved ones
         comments = []
         for comment in pr.get_review_comments():
-            if not self._is_comment_resolved_or_rejected(comment):
+            if not self._is_comment_resolved_or_rejected(comment, pr):
                 comments.append(self._convert_to_pr_comment(comment))
 
         return comments
 
-    def _is_comment_resolved_or_rejected(self, comment: PullRequestComment) -> bool:
+    def _is_comment_resolved_or_rejected(self, comment: PullRequestComment, pr: PullRequest) -> bool:
         """Check if a pull request comment is resolved or rejected.
         
         Args:
             comment: The GitHub PullRequestComment object
+            pr: The PullRequest object
             
         Returns:
             bool: True if resolved or rejected, False otherwise
@@ -128,12 +129,20 @@ class PRManager:
                 return True
             
             # Check for replies that indicate the suggestion was implemented
-            for reply in comment.replies:
-                if reply.body.strip() == "✅ This suggestion has been implemented":
-                    logger.info(f"Comment {comment.id} marked as implemented via reply")
-                    return True
-                else:
-                    logger.debug(f"Reply body: {reply.body}")
+            try:
+                # Get all review comments and filter for those that are in reply to this comment
+                comment_id = comment.id
+                for review_comment in pr.get_review_comments():
+                    # Check directly if this comment is a reply to our comment
+                    # in_reply_to_id is None for top-level comments
+                    if review_comment.in_reply_to_id == comment_id:
+                        if review_comment.body.strip() == "✅ This suggestion has been implemented":
+                            logger.info(f"Comment {comment_id} marked as implemented via reply")
+                            return True
+                        else:
+                            logger.debug(f"Reply body: {review_comment.body}")
+            except Exception as e:
+                logger.warning(f"Error checking comment replies: {e}")
             
             return False
         except Exception as e:
