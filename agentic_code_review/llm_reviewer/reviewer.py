@@ -62,7 +62,7 @@ class LLMReviewer:
             disabled_params={"parallel_tool_calls": None}
         )
         logger.info(f"Using model: {settings.LLM_MODEL}")
-        logger.info(f"Using temperature: {settings.LLM_MAX_TOKENS}")
+        logger.info(f"Using max tokens: {settings.LLM_MAX_TOKENS}")
         # Configure LLM to return structured output
         self.llm = base_llm.with_structured_output(ReviewResponse)
 
