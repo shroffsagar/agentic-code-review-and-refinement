@@ -36,6 +36,7 @@ pytest-asyncio = "^0.25.3"
 requires = ["poetry-core"]
 build-backend = "poetry.core.masonry.api"
 
+# Ruff linting configuration only
 [tool.ruff]
 line-length = 160
 target-version = "py310"

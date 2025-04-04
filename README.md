@@ -16,10 +16,10 @@ The following diagram illustrates the high-level architecture and workflow of th
 ## User Workflow
 
 1. Developer opens a Pull Request
-2. Developer manually triggers the Review Agent workflow by assigning the PR to it using label
-3. Review Agent analyzes the PR and adds inline review comments.
-4. Developer reviews the AI-generated comments and approves/rejects them
-5. Developer manually triggers the Refinement Agent workflow by assigning the PR to it using label
+2. Developer manually triggers the Review Agent workflow by adding the `agentic-review` label
+3. Review Agent analyzes the PR and adds inline review comments
+4. Developer reviews the AI-generated comments and resolves any irrelevant ones
+5. Developer manually triggers the Refinement Agent workflow by adding the `agentic-refine` label
 6. Refinement Agent implements approved suggestions and commits changes
 
 ## Project Development Phases
@@ -27,47 +27,44 @@ The following diagram illustrates the high-level architecture and workflow of th
 ### Phase 1: Core Infrastructure Setup (Completed)
 - [x] Project structure and development environment
 - [x] Dependency management with Poetry
-- [x] Code quality tools and standards
-- [x] Testing framework and logging
-- [x] Pre-commit hooks
+- [x] Code quality tools integration (Ruff, pre-commit)
+- [x] Testing framework and logging setup
+- [x] Environment management with Poetry
 
 ### Phase 2: GitHub Integration & LLM Infrastructure (Completed)
-- [x] GitHub App setup and authentication
-- [x] Webhook handling and PR management
-- [x] Agent infrastructure and state management
-- [x] LLM integration with GPT-4
-- [x] Review comment structure and templates
+- [x] GitHub App configuration and authentication
+- [x] Webhook handling for PR events
+- [x] PR comment and file management
+- [x] LLM integration with OpenAI API
+- [x] Configuration management with Pydantic
 
 ### Phase 3: Review Agent Implementation (Completed)
-- [x] Code review system with LLM
-- [x] PR analysis and comment posting
-- [x] Response validation and parsing
-- [x] Test PR creation and validation
+- [x] LLM-based code review system
+- [x] Structured PR analysis
+- [x] Detailed inline comment generation
+- [x] Comment formatting and categorization
 
-### Phase 4: Advanced Features (Completed)
-- [x] Code Analysis Foundation
-  - [x] Tree-sitter-graph integration
-  - [x] Graph-based code structure
-  - [x] Language-agnostic analysis
-  - [x] Comment processing system
-- [x] Refinement Agent Core
-  - [x] LLM Integration
-    - [x] Code refinement prompts
-    - [x] Change validation
-    - [x] Test generation
-  - [x] Graph-based code refinement
-  - [x] Change generation and validation
-  - [x] Test generation
-  - [x] Comment resolution
-- [x] Webhook Integration
-  - [x] Event handling for refinement
-  - [x] State management
-  - [x] Error handling and logging
-- [x] Advanced Features
-  - [x] Robust node tracking with stable references
-  - [x] Comprehensive code context analysis
-  - [x] Multi-level validation system
-  - [x] Graceful error recovery
+### Phase 4: Advanced Refinement Features (Completed)
+- [x] Tree-sitter Integration
+  - [x] Language-agnostic code parsing
+  - [x] Node-based code structure representation
+  - [x] Multi-language support
+- [x] Context Extraction
+  - [x] Intelligent code unit identification
+  - [x] Comprehensive context gathering
+  - [x] Code structure analysis
+- [x] Incremental Code Patching
+  - [x] Node-based code modifications
+  - [x] Stable references for tracking changes
+  - [x] Robust validation of modifications
+- [x] Advanced Comment Processing
+  - [x] Semantic grouping of related comments
+  - [x] Code-unit aware processing
+  - [x] Intelligent comment resolution
+- [x] Robust Error Handling
+  - [x] Graceful degradation for unsupported languages
+  - [x] Detailed error reporting and logging
+  - [x] Multiple validation layers
 
 ### Scope Limitations
 The system has the following scope limitations to maintain reliability and simplicity:
@@ -77,8 +74,8 @@ The system has the following scope limitations to maintain reliability and simpl
 - Does not automatically update test cases
 
 ### Phase 5: Testing and Quality Assurance (In Progress)
-- [x] Testing framework setup
-- [x] Core component tests
+- [x] Testing framework setup with pytest
+- [x] Core component unit tests
 - [ ] Integration and E2E tests
 - [ ] Performance and security testing
 
@@ -91,13 +88,13 @@ The system has the following scope limitations to maintain reliability and simpl
 
 The project has completed Phases 1-4, with all core components implemented and integrated. Key achievements include:
 
-- Complete GitHub App integration with webhook handling and PR management
-- Review Agent with structured comment generation and validation
-- Refinement Agent with tree-sitter-graph based code analysis and modification
-- LLM integration for both review and refinement operations
-- Automated workflow triggered by PR labels
-- Robust error handling and validation systems
-- Advanced code context analysis and signature change management
+- Complete GitHub App integration with webhooks for PR label events
+- Review Agent that generates structured, actionable code review comments
+- Refinement Agent with tree-sitter based code analysis and modification
+- Language-agnostic implementation supporting multiple programming languages
+- Intelligent comment processing that groups related suggestions by code units
+- Incremental patching system that preserves code structure
+- Robust error handling and validation throughout the process
 
 Currently working on:
 1. Testing and Quality Assurance (Phase 5)
@@ -110,26 +107,29 @@ Next major milestone: Completing the testing phase with comprehensive integratio
 
 ## Implementation Details
 
+### GitHub App Integration
+- Webhook handling for PR label events
+- PR comment management and resolution
+- File content retrieval and modification
+- State management to prevent concurrent operations
+
+### LLM Integration
+- OpenAI API integration with structured prompts
+- Response validation and parsing
+- Type-safe models using Pydantic
+- Configurable temperature and token settings
+
 ### Code Analysis System
-- Tree-sitter based parsing with stable node references
-- Graph-based code structure analysis
-- Language-agnostic code analysis
-- Robust node validation and tracking
-- Comprehensive context gathering
+- Tree-sitter based parsing for multiple languages
+- Context extraction based on code structure
+- Intelligent code unit identification
+- Support for imports and structural changes
 
 ### Refinement Agent
-- Intelligent comment grouping by code context
-- Multi-level validation of code changes
-- Signature change detection and handling
-- Graceful error recovery and logging
-- Automated comment resolution
-
-### Error Handling
-- Comprehensive error logging
-- Graceful degradation
-- Validation at multiple levels
-- Clear error messages and recovery paths
-- Transaction-like change management
+- Comment grouping by semantic code units
+- Multi-stage validation of code changes
+- Incremental patching with tree-sitter nodes
+- Robust error recovery and detailed reporting
 
 ## Contributing
 
