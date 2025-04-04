@@ -8,6 +8,22 @@
 
 GitHub AI Agent is an advanced AI-powered system that integrates seamlessly with GitHub's ecosystem to provide automated code review and intelligent code refinement. Leveraging the latest LLM technology, the system analyzes pull requests, provides actionable feedback, and automatically implements approved suggestions.
 
+## System Workflow
+
+Our system follows a structured workflow that ensures thorough code analysis and safe code modifications:
+
+<p align="center">
+  <img src="docs/assets/Review-Refine Agentic Workflow.png" alt="Agentic Workflow Diagram" width="800"/>
+</p>
+
+The workflow consists of several key stages:
+1. **Review Agent** analyzes code changes and generates contextual review comments
+2. **Human Review** allows developers to review and filter AI-generated suggestions
+3. **Refinement Agent** implements approved suggestions with AST-based code modifications
+4. **Validation & Patching** ensures all changes are syntactically correct and safe
+
+You can view and edit this workflow diagram in Excalidraw: [Agentic Workflow Diagram](https://excalidraw.com/#json=j_Ux1w5GRoAXlZYd1Bg7H,7BO-L7FDAoX4mqf93yQ8-Q)
+
 ## Key Features
 
 - **Intelligent Code Review**: Automatically analyzes pull requests and provides detailed, contextual code review comments
