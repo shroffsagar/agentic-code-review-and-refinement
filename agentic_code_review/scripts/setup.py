@@ -100,7 +100,10 @@ def check_poetry() -> bool:
     """Check if Poetry is installed"""
     if not shutil.which("poetry"):
         console.print("[red]❌ Poetry is not installed[/red]")
-        return False
+        console.print("[yellow]Please install Poetry before continuing:[/yellow]")
+        console.print("    macOS: brew install poetry")
+        console.print("    Other: https://python-poetry.org/docs/#installation")
+        sys.exit(1)
     
     console.print("[green]✓ Poetry is installed[/green]")
     return True
@@ -125,13 +128,12 @@ def check_smee() -> bool:
 
 def install_prerequisites(platform_type: str) -> None:
     """Install prerequisites based on detected platform"""
-    # Check and install Python 3.10+
+    # Check Python 3.10+
     if not check_python_version():
         install_python(platform_type)
     
-    # Check and install Poetry
-    if not check_poetry():
-        install_poetry(platform_type)
+    # Check Poetry (exit if not installed)
+    check_poetry()
     
     # Check and install npm if needed for SMEE
     if not check_npm() and Confirm.ask("Would you like to install Node.js and npm?", default=True):
@@ -149,14 +151,13 @@ def install_prerequisites(platform_type: str) -> None:
                     console.print("   Run: npm install --global smee-client")
     
     # Install Python dependencies with Poetry
-    if check_poetry():
-        with console.status("Installing Python dependencies with Poetry..."):
-            try:
-                subprocess.run(["poetry", "install"], cwd=PROJECT_ROOT, check=True)
-                console.print("[green]✓ Dependencies installed successfully[/green]")
-            except subprocess.CalledProcessError:
-                console.print("[red]❌ Failed to install dependencies with Poetry.[/red]")
-                sys.exit(1)
+    with console.status("Verifying Python dependencies with Poetry..."):
+        try:
+            subprocess.run(["poetry", "install"], cwd=PROJECT_ROOT, check=True)
+            console.print("[green]✓ Dependencies verified successfully[/green]")
+        except subprocess.CalledProcessError:
+            console.print("[red]❌ Failed to verify dependencies with Poetry.[/red]")
+            sys.exit(1)
 
 def install_python(platform_type: str) -> None:
     """Provide platform-specific Python installation instructions"""
@@ -225,71 +226,6 @@ def install_python(platform_type: str) -> None:
                     console.print("[red]❌ Failed to install Python 3.10+[/red]")
     
     console.print("[yellow]Please install Python 3.10+ manually and then re-run this script.[/yellow]")
-    sys.exit(1)
-
-def install_poetry(platform_type: str) -> None:
-    """Install Poetry based on platform"""
-    instructions = {
-        "macos": [
-            "Option 1: Using the official installer (recommended):",
-            "  curl -sSL https://install.python-poetry.org | python3 -",
-            "",
-            "Option 2: Using pip:",
-            "  pip install poetry"
-        ],
-        "linux": [
-            "Option 1: Using the official installer (recommended):",
-            "  curl -sSL https://install.python-poetry.org | python3 -",
-            "",
-            "Option 2: Using pip:",
-            "  pip install poetry"
-        ],
-        "windows": [
-            "Option 1: Using the official installer (PowerShell):",
-            "  (Invoke-WebRequest -Uri https://install.python-poetry.org -UseBasicParsing).Content | py -",
-            "",
-            "Option 2: Using pip:",
-            "  pip install poetry"
-        ]
-    }.get(platform_type, ["Visit https://python-poetry.org/docs/#installation for instructions"])
-    
-    console.print(Panel("\n".join(instructions), title="Poetry Installation", border_style="yellow"))
-    
-    choices = ["Use official installer (recommended)", "Use pip", "I'll install it manually"]
-    install_method = Prompt.ask("How would you like to install Poetry?", choices=choices, default=choices[0])
-    
-    if install_method == choices[0]:
-        with console.status("Installing Poetry using the official installer..."):
-            try:
-                if platform_type == "windows":
-                    # Windows (PowerShell)
-                    cmd = "(Invoke-WebRequest -Uri https://install.python-poetry.org -UseBasicParsing).Content | py -"
-                    subprocess.run(cmd, shell=True, check=True)
-                else:
-                    # Unix-like systems
-                    cmd = "curl -sSL https://install.python-poetry.org | python3 -"
-                    subprocess.run(cmd, shell=True, check=True)
-                
-                console.print("[green]✓ Poetry installed successfully[/green]")
-                
-                # Add Poetry to PATH for the current session
-                if platform_type in ["macos", "linux", "debian", "rhel"]:
-                    os.environ["PATH"] = f"{os.path.expanduser('~')}/.local/bin:{os.environ['PATH']}"
-                    console.print("[yellow]Added Poetry to PATH for this session[/yellow]")
-                    console.print("[yellow]You may need to add ~/.local/bin to your PATH permanently in your shell profile[/yellow]")
-                
-                return
-            except Exception as e:
-                console.print(f"[red]❌ Error installing Poetry: {str(e)}[/red]")
-    elif install_method == choices[1]:
-        with console.status("Installing Poetry using pip..."):
-            if run_command([sys.executable, "-m", "pip", "install", "poetry"]):
-                console.print("[green]✓ Poetry installed successfully[/green]")
-                return
-            else:
-                console.print("[red]❌ Failed to install Poetry using pip[/red]")
-    
-    console.print("[yellow]Please install Poetry manually and then re-run this script.[/yellow]")
     sys.exit(1)
 
 def install_nodejs(platform_type: str) -> None:

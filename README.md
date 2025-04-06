@@ -45,21 +45,31 @@ Follow these steps to set up and run the GitHub AI Agent on your local machine:
    cd agentic-code-review-and-refinement
    ```
 
-2. **Run the interactive setup script**:
+2. **Install Poetry** (prerequisite):
    ```bash
-   python agentic_code_review/scripts/setup.py
+   # Using Homebrew (macOS)
+   brew install poetry
+   
+   # Other installation methods: https://python-poetry.org/docs/#installation
+   ```
+
+3. **Install dependencies and run setup**:
+   ```bash
+   # Install project dependencies
+   poetry install
+   
+   # Run the setup script
+   poetry run python -m agentic_code_review.scripts.setup
    ```
    
    This script will guide you through:
-   - Checking and installing prerequisites (Python 3.10+, Poetry, SMEE client)
+   - Checking prerequisites (Python 3.10+, Node.js/SMEE client)
    - Creating a GitHub App and configuring permissions
    - Setting up SMEE for webhook forwarding
    - Configuring your LLM provider credentials
    - Creating the environment configuration file
-   
-   The script will help install any missing prerequisites with your permission.
 
-3. **Start the application**:
+4. **Start the application**:
    
    In one terminal, start the SMEE webhook forwarder:
    ```bash
@@ -71,11 +81,9 @@ Follow these steps to set up and run the GitHub AI Agent on your local machine:
    poetry run python -m agentic_code_review.github_app
    ```
 
-4. **Install your GitHub App** on the repositories you want to review
+5. **Install your GitHub App** on the repositories you want to review
 
-5. **Trigger a review** by adding the `agentic-review` label to a pull request
-
-For more detailed setup instructions, see the [Installation Guide](docs/installation.md).
+6. **Trigger a review** by adding the `agentic-review` label to a pull request
 
 ### Installing the GitHub AI Agent (Coming Soon)
 

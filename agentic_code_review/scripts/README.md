@@ -6,8 +6,8 @@ This directory contains scripts for setting up and running the Agentic Code Revi
 
 The interactive setup script guides users through setting up the application, including:
 
-- Checking and installing prerequisites (Python 3.10+, Poetry, Node.js/SMEE)
-- Setting up a GitHub App with proper permissions
+- Checking prerequisites (Python 3.10+, Node.js/SMEE)
+- Creating a GitHub App with proper permissions
 - Configuring SMEE for webhook forwarding
 - Setting up LLM credentials (OpenAI)
 - Creating a `.env` configuration file
@@ -19,6 +19,9 @@ To run the setup script:
 ```bash
 # Navigate to the project root
 cd /path/to/agentic-code-review-and-refinement
+
+# Install project dependencies
+poetry install
 
 # Run the setup script using Poetry
 poetry run python -m agentic_code_review.scripts.setup
