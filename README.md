@@ -35,6 +35,48 @@ You can view and edit this workflow diagram in Excalidraw: [Agentic Workflow Dia
 
 ## Getting Started
 
+### Local Installation
+
+Follow these steps to set up and run the GitHub AI Agent on your local machine:
+
+1. **Clone the repository**:
+   ```bash
+   git clone https://github.com/shroffsagar/agentic-code-review-and-refinement.git
+   cd agentic-code-review-and-refinement
+   ```
+
+2. **Run the interactive setup script**:
+   ```bash
+   python agentic_code_review/scripts/setup.py
+   ```
+   
+   This script will guide you through:
+   - Checking and installing prerequisites (Python 3.10+, Poetry, SMEE client)
+   - Creating a GitHub App and configuring permissions
+   - Setting up SMEE for webhook forwarding
+   - Configuring your LLM provider credentials
+   - Creating the environment configuration file
+   
+   The script will help install any missing prerequisites with your permission.
+
+3. **Start the application**:
+   
+   In one terminal, start the SMEE webhook forwarder:
+   ```bash
+   poetry run sh agentic_code_review/scripts/smee.sh
+   ```
+
+   In another terminal, run the GitHub App server:
+   ```bash
+   poetry run python -m agentic_code_review.github_app
+   ```
+
+4. **Install your GitHub App** on the repositories you want to review
+
+5. **Trigger a review** by adding the `agentic-review` label to a pull request
+
+For more detailed setup instructions, see the [Installation Guide](docs/installation.md).
+
 ### Installing the GitHub AI Agent (Coming Soon)
 
 > **Note:** The GitHub AI Agent is currently in beta. The following installation steps will be available once the service is publicly launched.
