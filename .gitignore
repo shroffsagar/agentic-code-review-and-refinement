@@ -62,3 +62,4 @@ htmlcov/
 
 # Poetry installer error logs
 poetry-installer-error-*.log
+agentic-code-review-and-refinement.code-workspace
