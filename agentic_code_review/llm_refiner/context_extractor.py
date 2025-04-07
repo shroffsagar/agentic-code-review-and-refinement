@@ -9,7 +9,7 @@ from typing import Optional, Dict, Any, Tuple, List
 import os
 
 from tree_sitter import Parser, Language, Tree, Node
-from tree_sitter_languages import get_language
+from tree_sitter_language_pack import get_language, get_parser
 
 from .models import CodeContext
 
@@ -100,14 +100,16 @@ class ContextExtractor:
         if language_id in self._parsers:
             return self._parsers[language_id]
             
-        language = self._get_language(language_id)
-        if not language:
-            return None
+        try:
+            # Use the get_parser function from tree-sitter-language-pack
+            parser = get_parser(language_id)
+            if parser:
+                self._parsers[language_id] = parser
+                return parser
+        except Exception as e:
+            logger.error(f"Failed to get parser for language {language_id}: {e}")
             
-        parser = Parser()
-        parser.set_language(language)
-        self._parsers[language_id] = parser
-        return parser
+        return None
     
     def parse_code(self, code: str, language_id: str) -> Optional[Tree]:
         """Parse code with tree-sitter.
