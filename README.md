@@ -85,15 +85,18 @@ Follow these steps to set up and run the GitHub AI Agent on your local machine:
 
 6. **Trigger a review** by adding the `agentic-review` label to a pull request
 
-### Installing the GitHub AI Agent (Coming Soon)
+### Future SaaS Offering
 
-> **Note:** The GitHub AI Agent is currently in beta. The following installation steps will be available once the service is publicly launched.
+> **Note:** After initial user testing on open source projects, GitHub AI Agent will be launched as a Software-as-a-Service (SaaS) offering. This will eliminate the need for local installation and configuration.
 
-1. Visit our [GitHub App installation page](https://github.com/shroffsagar/agentic-code-review-and-refinement)
-2. Click "Install" and select the repositories you want to enable the agent on
-3. Grant the required permissions when prompted
-4. You're all set! The agent is now ready to review your pull requests
-5. No local setup, configuration, or API keys required - everything is managed by our centrally hosted service.
+The SaaS version will feature:
+- Simple GitHub App installation process
+- No local setup, API keys, or infrastructure management
+- Centrally managed and continuously improved service
+- Tenant isolation
+- Subscription-based pricing model with various tiers
+
+Stay tuned for updates on the official launch date and early access opportunities.
 
 ## Usage
 
