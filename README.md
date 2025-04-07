@@ -138,3 +138,15 @@ These limitations ensure safe, reliable operation while we continue to enhance t
 ## Support
 
 For issues, questions, or feature requests, please open an issue on the GitHub repository.
+
+## Disclaimer
+
+### Security and Generated Code Disclaimer
+
+- **Security Disclaimer**: The security of this code is not guaranteed. While best practices are followed where possible, the author takes no responsibility for any security vulnerabilities, data breaches, or other security issues that may arise from the use of this software.
+
+- **Generated Code Disclaimer**: Any code written, suggested, or modified by the AI agents in this system is not the responsibility of the author. Users should thoroughly review all AI-generated code before implementation in production environments.
+
+- **No Warranty**: This software is provided "as is", without warranty of any kind, express or implied. The author disclaims all liability for damages resulting from the use of this software.
+
+By using this software, you acknowledge and accept these disclaimers.
