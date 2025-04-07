@@ -53,23 +53,25 @@ Follow these steps to set up and run the GitHub AI Agent on your local machine:
    # Other installation methods: https://python-poetry.org/docs/#installation
    ```
 
-3. **Install dependencies and run setup**:
+3. **One-time setup**:
    ```bash
    # Install project dependencies
    poetry install
    
-   # Run the setup script
+   # Run the setup script (one-time only)
    poetry run python -m agentic_code_review.scripts.setup
    ```
    
-   This script will guide you through:
+   This setup script will guide you through:
    - Checking prerequisites (Python 3.10+, Node.js/SMEE client)
    - Creating a GitHub App and configuring permissions
    - Setting up SMEE for webhook forwarding
    - Configuring your LLM provider credentials
    - Creating the environment configuration file
 
-4. **Start the application**:
+4. **Running the application**:
+   
+   After the one-time setup is complete, you only need to run these two processes each time:
    
    In one terminal, start the SMEE webhook forwarder:
    ```bash
