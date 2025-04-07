@@ -7,7 +7,8 @@ using tree-sitter in a language-agnostic way.
 import logging
 from typing import Optional, Dict, List, Tuple
 
-from tree_sitter import Tree, Node, Parser
+from tree_sitter import Tree, Node
+from tree_sitter_language_pack import get_parser
 
 from .context_extractor import ContextExtractor
 from .models import FileModification, PatchResult
@@ -32,7 +33,12 @@ class IncrementalPatcher:
         
         # Initialize the tree if language is supported
         if self.language_id:
-            self.tree = self.extractor.parse_code(file_content, self.language_id)
+            try:
+                parser = get_parser(self.language_id)
+                self.tree = parser.parse(bytes(file_content, 'utf-8'))
+            except Exception as e:
+                logger.error(f"Failed to parse code during initialization: {e}")
+                self.tree = None
         else:
             self.tree = None
             
@@ -236,7 +242,12 @@ class IncrementalPatcher:
         """
         if not self.tree and self.language_id:
             # Try to parse the current content if we don't have a tree
-            self.tree = self.extractor.parse_code(self.current_content, self.language_id)
+            try:
+                parser = get_parser(self.language_id)
+                self.tree = parser.parse(bytes(self.current_content, 'utf-8'))
+            except Exception as e:
+                logger.error(f"Failed to parse code during modification application: {e}")
+                self.tree = None
             
         if self.tree:
             # Use tree-sitter for incremental updates
@@ -319,7 +330,7 @@ class IncrementalPatcher:
             )
             
             # Reparse the content to keep the tree in sync, using incremental parsing
-            parser = self.extractor._get_parser(self.language_id)
+            parser = get_parser(self.language_id)
             self.tree = parser.parse(bytes(updated_content, 'utf-8'), self.tree)
             
             # Update current content
@@ -465,9 +476,14 @@ class IncrementalPatcher:
             return True
             
         # Parse the code from scratch
-        tree = self.extractor.parse_code(self.current_content, self.language_id)
-        if not tree:
-            logger.error("Failed to parse modified code")
+        try:
+            parser = get_parser(self.language_id)
+            tree = parser.parse(bytes(self.current_content, 'utf-8'))
+            if not tree:
+                logger.error("Failed to parse modified code")
+                return False
+        except Exception as e:
+            logger.error(f"Failed to parse modified code: {e}")
             return False
             
         # Check for syntax errors, but report details

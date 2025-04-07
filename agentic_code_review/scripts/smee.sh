@@ -2,13 +2,12 @@
 # Script to run the Smee client using environment variables
 # This forwards GitHub webhooks from smee.io to the local development server
 
-# Change to the directory where the script is located
-cd "$(dirname "$0")/../" || exit 1
-
 # Load environment variables from .env file
 if [ -f .env ]; then
   echo "Loading environment variables from .env"
-  export $(grep -v '^#' .env | xargs)
+  # Only extract and export the specific SMEE variables we need
+  export SMEE_URL=$(grep '^SMEE_URL=' .env | cut -d '=' -f 2)
+  export SMEE_TARGET=$(grep '^SMEE_TARGET=' .env | cut -d '=' -f 2)
 else
   echo "Error: .env file not found"
   exit 1

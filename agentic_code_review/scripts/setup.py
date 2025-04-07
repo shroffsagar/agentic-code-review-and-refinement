@@ -20,6 +20,7 @@ from typing import Dict, List, Optional, Tuple, Any
 import secrets
 import string
 import requests
+import getpass
 
 import typer
 from rich.console import Console
@@ -290,7 +291,7 @@ def install_nodejs(platform_type: str) -> None:
     
     console.print("[yellow]Please install Node.js manually and then re-run this script.[/yellow]")
 
-def setup_github_app() -> Dict[str, str]:
+def setup_github_app(smee_url: str = "") -> Dict[str, str]:
     """Guide user through GitHub App setup"""
     console.print(Panel(
         "To use this application, you need to create a GitHub App that will:\n"
@@ -308,7 +309,10 @@ def setup_github_app() -> Dict[str, str]:
     has_app = Confirm.ask("Have you already created a GitHub App?", default=False)
     
     if not has_app:
-        instructions = """
+        # Format the instructions with the SMEE URL if available
+        webhook_url_instruction = f"   - Webhook URL: {smee_url}" if smee_url else "   - Webhook URL: [Use the SMEE URL generated earlier]"
+        
+        instructions = f"""
 ### GitHub App Creation Instructions:
 
 1. Go to: https://github.com/settings/apps/new (for personal account)
@@ -317,20 +321,25 @@ def setup_github_app() -> Dict[str, str]:
 2. Fill in the required fields:
    - GitHub App name: [Your choice, e.g., "My Code Review App"]
    - Homepage URL: [Any valid URL, can be your GitHub profile]
-   - Webhook URL: [Use the SMEE URL we'll generate in the next step]
+{webhook_url_instruction}
    - Webhook secret: [Create a secure random string]
 
 3. Set the following Repository Permissions:
    - Contents: Read & write
+   - Discussions: Read & write
    - Issues: Read & write
    - Metadata: Read-only
    - Pull requests: Read & write
+   - Workflows: Read & write
 
 4. Subscribe to events:
+   - Discussion
+   - Issues
+   - Label
    - Pull request
-   - Issue comment
    - Pull request review
    - Pull request review comment
+   - Pull request review thread
 
 5. Choose where the app can be installed: [All accounts or Only this account]
 
@@ -347,17 +356,20 @@ def setup_github_app() -> Dict[str, str]:
             sys.exit(0)
     
     # Generate a secure webhook secret if needed
-    offer_generate_secret = not has_app or Confirm.ask("Would you like to generate a secure webhook secret?", default=False)
     webhook_secret = ""
     
-    if offer_generate_secret:
-        alphabet = string.ascii_letters + string.digits
-        webhook_secret = ''.join(secrets.choice(alphabet) for _ in range(40))
-        console.print(f"[green]Generated secure webhook secret: {webhook_secret}[/green]")
-        console.print("[yellow]Make sure to update this in your GitHub App settings.[/yellow]")
+    if not has_app:
+        # Only offer to generate a webhook secret for new app setups
+        offer_generate_secret = Confirm.ask("Would you like to generate a secure webhook secret?", default=True)
         
-        if not Confirm.ask("Have you updated the webhook secret in your GitHub App settings?", default=True):
-            console.print("[yellow]Please update your webhook secret before continuing.[/yellow]")
+        if offer_generate_secret:
+            alphabet = string.ascii_letters + string.digits
+            webhook_secret = ''.join(secrets.choice(alphabet) for _ in range(40))
+            console.print(f"[green]Generated secure webhook secret: {webhook_secret}[/green]")
+            console.print("[yellow]Make sure to update this in your GitHub App settings.[/yellow]")
+            
+            if not Confirm.ask("Have you updated the webhook secret in your GitHub App settings?", default=True):
+                console.print("[yellow]Please update your webhook secret before continuing.[/yellow]")
     
     # Collect GitHub App details
     app_id = IntPrompt.ask("Enter your GitHub App ID")
@@ -387,11 +399,49 @@ def setup_github_app() -> Dict[str, str]:
         "webhook_secret": webhook_secret
     }
 
+def install_github_app(app_id: str) -> None:
+    """Guide user through installing the GitHub App on repositories"""
+    console.print(Panel(
+        "Now that you've created your GitHub App, you need to install it on the repositories\n"
+        "where you want to use the Agentic Code Review and Refinement functionality.\n\n"
+        "This step gives your app permission to access and modify the selected repositories.",
+        title="GitHub App Installation",
+        border_style="cyan"
+    ))
+    
+    instructions = f"""
+### GitHub App Installation Instructions:
+
+1. Go to: https://github.com/settings/apps
+   (Find your app in the list and click on it)
+
+2. On your app's page, click the "Install App" button in the sidebar
+
+3. Choose where to install the app:
+   - Select the account (personal or organization) where your repositories are located
+   
+4. Configure repository access:
+   - "All repositories" - The app will have access to all current and future repositories
+   - "Only select repositories" - You can select specific repositories where you want to use this app
+   
+5. Click "Install" to complete the installation
+
+6. You should be redirected to the app's setup page or your repositories page
+"""
+    console.print(Markdown(instructions))
+    
+    if not Confirm.ask("Press Y when you have installed your GitHub App on your repositories", default=True):
+        console.print("[yellow]Remember to install the GitHub App before using it.[/yellow]")
+        if not Confirm.ask("Continue with setup anyway?", default=True):
+            console.print("[yellow]Setup cancelled. You can re-run this script when you're ready.[/yellow]")
+            sys.exit(0)
+
 def setup_smee() -> Dict[str, str]:
     """Set up SMEE for webhook forwarding"""
     console.print(Panel(
         "SMEE.io is a webhook payload delivery service that will forward "
-        "GitHub webhooks to your local development environment.",
+        "GitHub webhooks to your local development environment.\n\n"
+        "We'll generate a SMEE URL first, which you'll need when setting up your GitHub App.",
         title="SMEE Webhook Forwarding Setup",
         border_style="cyan"
     ))
@@ -414,37 +464,54 @@ def setup_smee() -> Dict[str, str]:
                 show_default=True
             )
     else:
-        with console.status("Generating a new SMEE URL..."):
-            try:
+        # Generate new SMEE URL
+        smee_url = ""
+        try:
+            # First show the status message while making the request
+            with console.status("Generating a new SMEE URL..."):
                 response = requests.get("https://smee.io/new")
                 smee_url = response.url
-                console.print(f"[green]✓ Generated new SMEE URL: {smee_url}[/green]")
-                
-                console.print("[yellow]⚠️ IMPORTANT: Go to your GitHub App settings and update the Webhook URL "
-                             f"to {smee_url}[/yellow]")
-                
-                if not Confirm.ask("Have you updated the Webhook URL in your GitHub App settings?", default=True):
-                    console.print("[yellow]Please update your GitHub App webhook URL before continuing.[/yellow]")
-                    console.print(f"[yellow]SMEE URL: {smee_url}[/yellow]")
+            
+            # Then display the results after the status context is closed
+            console.print(f"[green]✓ Generated new SMEE URL: {smee_url}[/green]")
+            console.print("[yellow]⚠️ IMPORTANT: You'll need to use this URL when setting up your GitHub App in the next step.[/yellow]")
+            console.print("[yellow]⚠️ You may want to copy this URL to your clipboard now.[/yellow]")
+            
+            if not Confirm.ask("Have you noted down the SMEE URL for use in GitHub App setup?", default=True):
+                console.print(f"[yellow]SMEE URL: {smee_url}[/yellow]")
+                console.print("[yellow]Please note down this URL before continuing.[/yellow]")
+                if not Confirm.ask("Ready to continue?", default=True):
                     sys.exit(0)
-            except Exception as e:
-                console.print(f"[red]❌ Failed to generate SMEE URL: {e}[/red]")
-                smee_url = Prompt.ask(
-                    "Please enter a SMEE URL manually",
-                    default="https://smee.io/",
-                    show_default=True
-                )
+        except Exception as e:
+            console.print(f"[red]❌ Failed to generate SMEE URL: {e}[/red]")
+            smee_url = Prompt.ask(
+                "Please enter a SMEE URL manually",
+                default="https://smee.io/",
+                show_default=True
+            )
     
     # Get local target URL
     target_url = Prompt.ask(
         "Enter your local target URL",
-        default="http://localhost:3000/api/webhook",
+        default="http://localhost:8000/api/webhook",
         show_default=True
     )
     
+    # Extract port from target URL
+    port = 8000  # Default port
+    try:
+        import re
+        port_match = re.search(r'localhost:(\d+)', target_url)
+        if port_match:
+            port = int(port_match.group(1))
+            console.print(f"[green]✓ Using port {port} for the application[/green]")
+    except Exception as e:
+        console.print(f"[yellow]⚠️ Could not extract port from URL, using default: {e}[/yellow]")
+    
     return {
         "smee_url": smee_url,
-        "target_url": target_url
+        "target_url": target_url,
+        "port": port
     }
 
 def setup_llm() -> Dict[str, str]:
@@ -456,7 +523,8 @@ def setup_llm() -> Dict[str, str]:
         border_style="cyan"
     ))
     
-    api_key = Prompt.ask("Enter your OpenAI API Key", password=True)
+    console.print("Enter your OpenAI API Key (input will be hidden, you may need to press Enter twice):")
+    api_key = getpass.getpass("")
     
     # Default model suggestions
     model_choices = ["o3-mini", "gpt-4", "gpt-4-turbo", "gpt-3.5-turbo"]
@@ -484,17 +552,21 @@ def create_env_file(github_app: Dict[str, str], smee: Dict[str, str], llm: Dict[
     with open(ENV_TEMPLATE_PATH, 'r') as f:
         template_content = f.read()
     
+    # Get port from SMEE config or use default
+    port = smee.get("port", 8000)
+    
     # Use Jinja2 templating for better maintainability
     template = Template(template_content)
     env_content = template.render(
         github_app_id=github_app["app_id"],
-        github_private_key=github_app["private_key"].strip(),
+        github_private_key=f'"{github_app["private_key"].strip()}"',
         github_webhook_secret=github_app["webhook_secret"],
-        llm_api_key=llm["api_key"],
-        llm_provider=llm["provider"],
-        llm_model=llm["model"],
+        llm_api_key=f'"{llm["api_key"]}"',
+        llm_provider=f'"{llm["provider"]}"',
+        llm_model=f'"{llm["model"]}"',
         smee_url=smee["smee_url"],
-        smee_target=smee["target_url"]
+        smee_target=smee["target_url"],
+        port=port
     )
     
     # Write to .env file
@@ -502,10 +574,14 @@ def create_env_file(github_app: Dict[str, str], smee: Dict[str, str], llm: Dict[
         f.write(env_content)
     
     console.print(f"[green]✓ Environment configuration created: {ENV_PATH}[/green]")
+    console.print(f"[green]✓ Application will run on port: {port}[/green]")
 
 def show_startup_instructions(smee: Dict[str, str]) -> None:
     """Show instructions for starting the application"""
-    instructions = """
+    # Get port from SMEE config or use default
+    port = smee.get("port", 8000)
+    
+    instructions = f"""
 ## Startup Instructions
 
 Your configuration is complete! To start using the application:
@@ -524,6 +600,8 @@ Your configuration is complete! To start using the application:
    Later, add the label "agentic-refine" to apply suggested changes.
 
 4. To stop the application, press Ctrl+C in both terminals.
+
+Note: The application runs on http://localhost:{port} by default.
 """
     console.print(Markdown(instructions))
 
@@ -538,13 +616,17 @@ def main() -> None:
     
     install_prerequisites(platform_type)
     
-    # Setup GitHub App
-    console.print("\n[bold cyan]GitHub App Setup[/bold cyan]")
-    github_app = setup_github_app()
-    
-    # Setup SMEE
+    # Setup SMEE first to get the webhook URL
     console.print("\n[bold cyan]SMEE Webhook Forwarding Setup[/bold cyan]")
     smee = setup_smee()
+    
+    # Setup GitHub App with the SMEE URL
+    console.print("\n[bold cyan]GitHub App Setup[/bold cyan]")
+    github_app = setup_github_app(smee["smee_url"])
+    
+    # Install GitHub App on repositories
+    console.print("\n[bold cyan]GitHub App Installation[/bold cyan]")
+    install_github_app(github_app["app_id"])
     
     # Setup LLM
     console.print("\n[bold cyan]LLM Provider Setup[/bold cyan]")
