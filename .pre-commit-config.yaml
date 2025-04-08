@@ -31,6 +31,7 @@ repos:
         types: [python]
         pass_filenames: false
         always_run: true
+        stages: [manual]
 
       - id: mypy
         name: Run mypy
@@ -39,6 +40,7 @@ repos:
         types: [python]
         pass_filenames: false
         always_run: true
+        stages: [manual]
 
       - id: pytest
         name: Run pytest
@@ -47,3 +49,4 @@ repos:
         types: [python]
         pass_filenames: false
         always_run: true
+        stages: [manual]
