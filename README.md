@@ -87,6 +87,8 @@ Follow these steps to set up and run the GitHub AI Agent on your local machine:
 
 6. **Trigger a review** by adding the `agentic-review` label to a pull request
 
+7. **Automatically incorporate review comments** by adding the `agentic-refine` label to a pull request
+
 ### Future SaaS Offering
 
 > **Note:** After initial user testing on open source projects, GitHub AI Agent will be launched as a Software-as-a-Service (SaaS) offering. This will eliminate the need for local installation and configuration.
@@ -113,7 +115,7 @@ Stay tuned for updates on the official launch date and early access opportunitie
 1. Review the AI-generated comments
 2. Resolve any comments you disagree with
 3. Add the `agentic-refine` label to the PR
-4. The Refinement Agent will implement the remaining suggestions
+4. The Refinement Agent will implement the remaining suggestions and create a pull request to the branch.
 
 ## Review Comment Categories
 
