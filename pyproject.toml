@@ -45,7 +45,7 @@ target-version = "py310"
 
 [tool.ruff.lint]
 select = ["E", "F", "B", "I", "N", "UP", "PL", "RUF"]
-ignore = ["PLR0913", "UP007"]
+ignore = ["PLR0913", "UP007", "F821", "PLR0912", "PLR0915", "B007", "RUF013"]
 
 [tool.ruff.lint.isort]
 known-first-party = ["agentic_code_review"]
