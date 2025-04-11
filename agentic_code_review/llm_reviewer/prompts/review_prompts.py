@@ -13,8 +13,15 @@ Priority areas:
 
 Context:
 File: {file_path}
-Changes: {code_diff}
-Context: {additional_context}
+Code Unit Context: {code_diff}
+Additional Information: {additional_context}
+
+Instructions:
+- Review THIS SPECIFIC CODE UNIT, not the entire file
+- Compare the before and after versions of the code unit
+- Examine the specific changes made (in the diff sections)
+- Suggest improvements based on what changed in this unit
+- Check for issues that might be introduced by these changes
 
 Return JSON per schema: {format_instructions}
 
@@ -23,6 +30,10 @@ KEY RULES:
 2. Aggregate similar low-severity issues into ONE comment
 3. Format: [file:line], Category (Quality/Performance/Security/Testing/Maintainability), Severity
 4. Be specific and actionable
+5. For each comment, carefully determine which side of the diff it belongs on:
+   - Use "RIGHT" for comments about new/modified code in the diff
+   - Use "LEFT" for comments about removed/old code in the diff
+   - Default to "RIGHT" if the comment applies to both sides or you're unsure
 
 Focus only on substantive issues. Be concise."""
 
@@ -41,8 +52,15 @@ Priority areas:
 
 Context:
 File: {file_path}
-Changes: {code_diff}
-Context: {additional_context}
+Code Unit Context: {code_diff}
+Additional Information: {additional_context}
+
+Instructions:
+- Review THIS SPECIFIC TEST UNIT, not the entire file
+- Compare the before and after versions of the test code
+- Examine the specific changes made (in the diff sections)
+- Verify that the test coverage remains adequate after changes
+- Check for test issues that might be introduced by these changes
 
 Return JSON per schema: {format_instructions}
 
@@ -51,6 +69,10 @@ KEY RULES:
 2. Aggregate similar low-severity issues into ONE comment
 3. Format: [file:line], Category (Coverage/Quality/Maintainability), Severity
 4. Be specific and actionable
+5. For each comment, carefully determine which side of the diff it belongs on:
+   - Use "RIGHT" for comments about new/modified code in the diff
+   - Use "LEFT" for comments about removed/old code in the diff
+   - Default to "RIGHT" if the comment applies to both sides or you're unsure
 
 Focus only on substantive issues. Be concise."""
 

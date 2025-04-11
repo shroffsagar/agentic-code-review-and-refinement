@@ -1,8 +1,9 @@
 """Common data models for the Agentic Code Review system."""
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
-from .github_app.managers.pr_manager import PRFile
+from .github_app.models import PRFile
+from .llm_refiner.models import CodeDiffUnit
 
 
 @dataclass
@@ -18,6 +19,7 @@ class FileToReview:
     content: str | None = None  # Full file content if needed
     is_test_file: bool = False  # Whether this is a test file
     additional_context: str | None = None  # Any extra context for the LLM
+    code_diff_units: list[CodeDiffUnit] = field(default_factory=list)  # Code diff units extracted from the PR file
 
     @property
     def file_path(self) -> str:
