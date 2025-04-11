@@ -1,7 +1,6 @@
 """LLM-powered code reviewer implementation."""
 
 import logging
-from typing import cast
 
 from langchain_core.pydantic_v1 import BaseModel, Field
 from langchain_openai import ChatOpenAI
@@ -27,6 +26,7 @@ class ReviewComment(BaseModel):
     severity: str = Field(description="Severity level of the issue", pattern="^(High|Medium|Low)$")
     description: str = Field(description="Detailed description of the issue")
     suggestion: str = Field(description="Suggested improvement")
+    side: str = Field(description="Which side of the diff to place the comment on", pattern="^(LEFT|RIGHT)$")
 
 
 class ReviewResponse(BaseModel):
@@ -40,9 +40,9 @@ class LLMReviewer:
 
     def __init__(
         self,
-        model_name: str = None,
-        temperature: float = None,
-        max_tokens: int = None,
+        model_name: str | None = None,
+        temperature: float | None = None,
+        max_tokens: int | None = None,
     ) -> None:
         """Initialize the LLM reviewer.
 
@@ -76,8 +76,12 @@ class LLMReviewer:
             List of ReviewComment objects containing the review feedback
         """
         try:
+            logger.info(f"Starting code review for file: {file.file_path}")
+            logger.debug(f"File status: {file.file.status}, Changes: +{file.file.additions} -{file.file.deletions}")
+
             # Select appropriate prompt based on file type
             prompt = test_review_prompt if file.is_test_file else code_review_prompt
+            logger.debug(f"Using {'test' if file.is_test_file else 'code'} review prompt")
 
             # Create format instructions manually
             format_instructions = """
@@ -89,7 +93,8 @@ class LLMReviewer:
                   "category": "string (one of: Quality, Performance, Security, Testing, Maintainability, Coverage)",
                   "severity": "string (one of: High, Medium, Low)",
                   "description": "string (detailed description of the issue)",
-                  "suggestion": "string (concrete suggestion for improvement)"
+                  "suggestion": "string (concrete suggestion for improvement)",
+                  "side": "string (one of: LEFT, RIGHT) - LEFT for old/deleted code, RIGHT for new/modified code"
                 }
               ]
             }
@@ -105,6 +110,19 @@ class LLMReviewer:
 
             # Get LLM response with structured output
             response: ReviewResponse = await self.llm.ainvoke(formatted_prompt)
+            # Log the review results
+            if response.comments:
+                logger.info(f"Review complete. Found {len(response.comments)} issues in {file.file_path}")
+                for comment in response.comments:
+                    logger.debug(
+                        f"Comment on line {comment.line_number} - "
+                        f"Category: {comment.category}, "
+                        f"Severity: {comment.severity}, "
+                        f"Side: {comment.side}"
+                    )
+            else:
+                logger.info(f"Review complete. No issues found in {file.file_path}")
+
             return response.comments
 
         except Exception as e:
@@ -120,11 +138,19 @@ class LLMReviewer:
         Returns:
             Dictionary mapping file paths to lists of ReviewComment objects
         """
+        logger.info(f"Starting review of {len(files)} files")
         results = {}
-        for file in files:
+        total_comments = 0
+
+        for i, file in enumerate(files, 1):
             try:
-                results[file.file_path] = await self.review_file(file)
+                logger.info(f"Processing file {i}/{len(files)}: {file.file_path}")
+                comments = await self.review_file(file)
+                results[file.file_path] = comments
+                total_comments += len(comments)
             except Exception as e:
                 logger.error(f"Failed to review {file.file_path}: {e}")
                 results[file.file_path] = []
+
+        logger.info(f"Review complete. Found {total_comments} total issues across {len(files)} files")
         return results

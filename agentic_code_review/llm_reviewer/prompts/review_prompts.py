@@ -23,6 +23,10 @@ KEY RULES:
 2. Aggregate similar low-severity issues into ONE comment
 3. Format: [file:line], Category (Quality/Performance/Security/Testing/Maintainability), Severity
 4. Be specific and actionable
+5. For each comment, carefully determine which side of the diff it belongs on:
+   - Use "RIGHT" for comments about new/modified code in the diff
+   - Use "LEFT" for comments about removed/old code in the diff
+   - Default to "RIGHT" if the comment applies to both sides or you're unsure
 
 Focus only on substantive issues. Be concise."""
 
@@ -51,6 +55,10 @@ KEY RULES:
 2. Aggregate similar low-severity issues into ONE comment
 3. Format: [file:line], Category (Coverage/Quality/Maintainability), Severity
 4. Be specific and actionable
+5. For each comment, carefully determine which side of the diff it belongs on:
+   - Use "RIGHT" for comments about new/modified code in the diff
+   - Use "LEFT" for comments about removed/old code in the diff
+   - Default to "RIGHT" if the comment applies to both sides or you're unsure
 
 Focus only on substantive issues. Be concise."""
 
