@@ -13,8 +13,15 @@ Priority areas:
 
 Context:
 File: {file_path}
-Changes: {code_diff}
-Context: {additional_context}
+Code Unit Context: {code_diff}
+Additional Information: {additional_context}
+
+Instructions:
+- Review THIS SPECIFIC CODE UNIT, not the entire file
+- Compare the before and after versions of the code unit
+- Examine the specific changes made (in the diff sections)
+- Suggest improvements based on what changed in this unit
+- Check for issues that might be introduced by these changes
 
 Return JSON per schema: {format_instructions}
 
@@ -45,8 +52,15 @@ Priority areas:
 
 Context:
 File: {file_path}
-Changes: {code_diff}
-Context: {additional_context}
+Code Unit Context: {code_diff}
+Additional Information: {additional_context}
+
+Instructions:
+- Review THIS SPECIFIC TEST UNIT, not the entire file
+- Compare the before and after versions of the test code
+- Examine the specific changes made (in the diff sections)
+- Verify that the test coverage remains adequate after changes
+- Check for test issues that might be introduced by these changes
 
 Return JSON per schema: {format_instructions}
 

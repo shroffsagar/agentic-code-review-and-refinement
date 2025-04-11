@@ -5,37 +5,24 @@ including comment management and code analysis.
 """
 
 import logging
-from dataclasses import dataclass
-from typing import Dict, List, Optional, Tuple
 import time
+from typing import Optional
 
-from github import Github, PullRequest, Repository, PullRequestComment
+from github import PullRequest, PullRequestComment, Repository
+
+# Import the diff extractor and CodeDiffUnit
+from ...llm_refiner.diff_extractor import DiffExtractor
 
 # Remove imports from deprecated code_analysis
 # from ...code_analysis.code_analyzer import CodeAnalyzer
 # from ...code_analysis.language_config import LanguageRegistry
-
 # Import FileModification from the new location
-from ...llm_refiner.models import FileModification
-
+from ...llm_refiner.models import CodeDiffUnit
 from ..auth.authenticator import GitHubAuthenticator
-from ..models import PRComment, PRContext
 from ..constants import IN_PROGRESS_LABEL
+from ..models import PRComment, PRContext, PRFile
 
 logger = logging.getLogger(__name__)
-
-
-@dataclass
-class PRFile:
-    """Represents a file in a pull request."""
-
-    filename: str
-    patch: str | None
-    status: str
-    additions: int
-    deletions: int
-    changes: int
-    previous_filename: str | None = None
 
 
 class PRManager:
@@ -53,6 +40,8 @@ class PRManager:
         # self.language_registry = LanguageRegistry()
         # Cache for installation clients
         self._installation_clients = {}
+        # Initialize the DiffExtractor
+        self._diff_extractor = DiffExtractor()
 
     def _get_pr(self, context: PRContext) -> PullRequest:
         """Get a pull request by its context.
@@ -98,7 +87,7 @@ class PRManager:
             List of unresolved comments
         """
         pr = self._get_pr(context)
-        
+
         # Get all review comments directly from PR and filter unresolved ones
         comments = []
         for comment in pr.get_review_comments():
@@ -109,11 +98,11 @@ class PRManager:
 
     def _is_comment_resolved_or_rejected(self, comment: PullRequestComment, pr: PullRequest) -> bool:
         """Check if a pull request comment is resolved or rejected.
-        
+
         Args:
             comment: The GitHub PullRequestComment object
             pr: The PullRequest object
-            
+
         Returns:
             bool: True if resolved or rejected, False otherwise
         """
@@ -122,12 +111,12 @@ class PRManager:
             if any(reaction.content == "-1" for reaction in comment.get_reactions()):
                 logger.debug(f"Comment {comment.id} has been rejected (thumbs down)")
                 return True
-            
+
             # Check if comment is outdated (position is None indicates resolution)
             if comment.position is None:
                 logger.debug(f"Comment {comment.id} appears to be outdated (position is None)")
                 return True
-            
+
             # Check for replies that indicate the suggestion was implemented
             try:
                 # Get all review comments and filter for those that are in reply to this comment
@@ -143,7 +132,7 @@ class PRManager:
                             logger.debug(f"Reply body: {review_comment.body}")
             except Exception as e:
                 logger.warning(f"Error checking comment replies: {e}")
-            
+
             return False
         except Exception as e:
             logger.error(f"Error checking comment resolution status: {e}")
@@ -198,7 +187,7 @@ class PRManager:
 
     def post_comment(self, context: PRContext, message: str) -> None:
         """Post a general comment on a pull request.
-        
+
         This method is used for posting general PR comments that are not tied to specific code lines.
         For inline code review comments, use post_review_comment instead.
 
@@ -229,26 +218,44 @@ class PRManager:
             file_path: Path to the file being commented on
             line_number: Line number to comment on
             message: The review comment message
-            side: Which side of the diff to comment on (optional)
+            side: Which side of the diff to comment on ('LEFT' for old version, 'RIGHT' for new version)
         """
         pr = self._get_pr(context)
-        
+
         # Get the latest commit from the PR
         commits = list(pr.get_commits().reversed)
         if not commits:
             raise ValueError("No commits found in the PR")
-        
+
         commit = commits[0]
         logger.debug(f"Using commit {commit.sha} for review comment")
+        logger.debug(f"Comment parameters - File: {file_path}, Line: {line_number}, Side: {side}")
 
         # Create a review comment directly on the code line
-        pr.create_review_comment(
-            body=message,
-            commit=commit,
-            path=file_path,
-            line=line_number
-        )
-        logger.info(f"Posted review comment on line {line_number} of {file_path}")
+        try:
+            if side == "LEFT":
+                logger.debug("Creating LEFT side comment with position=None")
+                pr.create_review_comment(
+                    body=message,
+                    commit=commit,
+                    path=file_path,
+                    line=line_number,
+                    side="LEFT"
+                )
+            else:
+                logger.debug("Creating RIGHT side comment")
+                pr.create_review_comment(
+                    body=message,
+                    commit=commit,
+                    path=file_path,
+                    line=line_number,
+                    side="RIGHT"
+                )
+            logger.info(f"Posted review comment on line {line_number} of {file_path} (side: {side or 'RIGHT'})")
+        except Exception as e:
+            logger.error(f"Failed to create review comment: {e}")
+            logger.error(f"Comment details - File: {file_path}, Line: {line_number}, Side: {side}, Message: {message[:100]}...")
+            raise
 
     def manage_labels(
         self,
@@ -339,20 +346,20 @@ class PRManager:
 
     def _create_refinement_branch(self, repo: Repository, original_branch: str, original_sha: str) -> Optional[str]:
         """Create a new refinement branch from the original branch.
-        
+
         Args:
             repo: The GitHub repository
             original_branch: Name of the original branch
             original_sha: SHA of the commit to branch from
-            
+
         Returns:
             Name of the new branch if successful, None otherwise
         """
         timestamp = int(time.time())
         refinement_branch = f"{original_branch}-refinement-{timestamp}"
-        
+
         logger.info(f"Creating new refinement branch: {refinement_branch} from {original_branch}")
-        
+
         try:
             # Create a new branch from the original branch's HEAD
             repo.create_git_ref(
@@ -364,18 +371,18 @@ class PRManager:
         except Exception as branch_error:
             logger.error(f"Failed to create new branch: {branch_error}")
             return None
-    
-    def _update_file_on_branch(self, repo: Repository, file_path: str, 
+
+    def _update_file_on_branch(self, repo: Repository, file_path: str,
                              content: str, branch: str, commit_message: str) -> bool:
         """Update or create a file on a specific branch.
-        
+
         Args:
             repo: The GitHub repository
             file_path: Path to the file
             content: New content for the file
             branch: Branch to update
             commit_message: Commit message base
-            
+
         Returns:
             True if successful, False otherwise
         """
@@ -385,7 +392,7 @@ class PRManager:
                 file = repo.get_contents(file_path, ref=branch)
                 update_message = f"{commit_message} - Update {file_path}"
                 logger.info(f"Updating existing file: {file_path}")
-                
+
                 # Use update_file if the file exists
                 result = repo.update_file(
                     path=file_path,
@@ -395,12 +402,12 @@ class PRManager:
                     branch=branch
                 )
                 logger.info(f"Successfully updated {file_path} (commit: {result['commit'].sha[:7]})")
-                
-            except Exception as not_found_error:
+
+            except Exception:
                 # If file doesn't exist, create it
                 create_message = f"{commit_message} - Create {file_path}"
                 logger.info(f"Creating new file: {file_path}")
-                
+
                 result = repo.create_file(
                     path=file_path,
                     message=create_message,
@@ -408,39 +415,39 @@ class PRManager:
                     branch=branch
                 )
                 logger.info(f"Successfully created {file_path} (commit: {result['commit'].sha[:7]})")
-                
+
             return True
-            
+
         except Exception as file_error:
             logger.error(f"Failed to update file {file_path}: {file_error}")
             return False
-            
-    def _create_refinement_pr(self, repo: Repository, context: PRContext, 
-                            refinement_branch: str, original_branch: str, 
-                            successful_files: List[str]) -> Optional[PullRequest]:
+
+    def _create_refinement_pr(self, repo: Repository, context: PRContext,
+                            refinement_branch: str, original_branch: str,
+                            successful_files: list[str]) -> Optional[PullRequest]:
         """Create a pull request with the refinement changes.
-        
+
         Args:
             repo: The GitHub repository
             context: The PR context
             refinement_branch: Name of the branch with changes
             original_branch: Name of the original PR branch
             successful_files: List of successfully modified files
-            
+
         Returns:
             The new PR if created successfully, None otherwise
         """
         refinement_pr_title = f"Automated code refinements for PR #{context.pr_number}"
         refinement_pr_body = f"""
         This PR contains automated code refinements based on review comments.
-        
+
         Original PR: #{context.pr_number}
         Files modified: {', '.join(successful_files)}
-        
+
         These changes were implemented by the automated code refinement system.
         Please review and merge if the changes look good.
         """
-        
+
         try:
             new_pr = repo.create_pull(
                 title=refinement_pr_title,
@@ -449,7 +456,7 @@ class PRManager:
                 base=original_branch
             )
             logger.info(f"Created new PR #{new_pr.number} for refinements")
-            
+
             # Add a comment on the original PR
             self.post_comment(
                 context,
@@ -460,13 +467,13 @@ class PRManager:
             logger.error(f"Failed to create refinement PR: {pr_error}")
             return None
 
-    def commit_changes(self, context: PRContext, changes: Dict[str, str], commit_message: str) -> bool:
+    def commit_changes(self, context: PRContext, changes: dict[str, str], commit_message: str) -> bool:
         """Commit changes to files in a pull request.
-        
-        This method creates a new branch from the PR's current head branch, 
-        applies all changes to that branch, and then creates a new PR to merge 
-        the changes back into the original PR branch. This approach preserves 
-        the original PR branch while allowing reviewers to see and approve the 
+
+        This method creates a new branch from the PR's current head branch,
+        applies all changes to that branch, and then creates a new PR to merge
+        the changes back into the original PR branch. This approach preserves
+        the original PR branch while allowing reviewers to see and approve the
         automated changes.
 
         Args:
@@ -483,60 +490,60 @@ class PRManager:
             repo = pr.base.repo
             original_branch = pr.head.ref
             original_branch_sha = pr.head.sha
-            
+
             # Create a new branch for refinements
             refinement_branch = self._create_refinement_branch(repo, original_branch, original_branch_sha)
             if not refinement_branch:
                 return False
-            
+
             # Track file operations
             successful_files = []
             failed_files = []
-            
+
             # Process each file
             for file_path, modified_content in changes.items():
                 success = self._update_file_on_branch(
                     repo, file_path, modified_content, refinement_branch, commit_message
                 )
-                
+
                 if success:
                     successful_files.append(file_path)
                 else:
                     failed_files.append(file_path)
-            
+
             # Log summary of operations
             if successful_files:
                 logger.info(f"Successfully committed changes to {len(successful_files)} files: {', '.join(successful_files)}")
-                
+
                 # Create PR with the changes
                 new_pr = self._create_refinement_pr(
                     repo, context, refinement_branch, original_branch, successful_files
                 )
-                
+
                 # Even if PR creation fails, return success if files were committed
                 if not new_pr and len(failed_files) == 0:
                     return True
-            
+
             if failed_files:
                 logger.error(f"Failed to commit changes to {len(failed_files)} files: {', '.join(failed_files)}")
-                
+
             # Return success if no files failed
             return len(failed_files) == 0
-                
+
         except Exception as e:
             logger.error(f"Failed to commit changes: {e}")
             return False
 
-    def resolve_comments(self, context: PRContext, suggestions: List[Tuple[str, str]]) -> None:
+    def resolve_comments(self, context: PRContext, suggestions: list[tuple[str, str]]) -> None:
         """Resolve comments for implemented suggestions.
-        
+
         Args:
             context: The PR context
             suggestions: List of tuples containing (suggestion_id, file_path)
         """
         try:
             pr = self._get_pr(context)
-            
+
             for suggestion_id, file_path in suggestions:
                 try:
                     # Ensure suggestion_id is an integer for PR API call
@@ -545,13 +552,13 @@ class PRManager:
                     except ValueError:
                         logger.error(f"Invalid comment ID format: {suggestion_id}")
                         continue
-                    
+
                     try:
                         # Get the review comment
                         comment = pr.get_review_comment(comment_id)
                         if comment:
                             logger.info(f"Found comment {comment_id} for {file_path}")
-                            
+
                             # Method 1: Use resolve() method if available (GitHub API v4)
                             if hasattr(comment, 'resolve'):
                                 try:
@@ -561,10 +568,10 @@ class PRManager:
                                 except Exception as resolve_error:
                                     logger.warning(f"Failed to use resolve() method for comment {comment_id}: {resolve_error}")
                                     # Fall through to alternative methods
-                            
+
                             # Method 2: Try different ways to add a reply comment
                             resolution_message = "✅ This suggestion has been implemented."
-                            
+
                             # First try create_review_comment_reply on PR object
                             try:
                                 if hasattr(pr, 'create_review_comment_reply'):
@@ -576,7 +583,7 @@ class PRManager:
                                     continue
                             except Exception as reply_error1:
                                 logger.warning(f"Failed to add reply via PR.create_review_comment_reply: {reply_error1}")
-                            
+
                             # Next try reply() method on comment object
                             try:
                                 if hasattr(comment, 'reply'):
@@ -585,7 +592,7 @@ class PRManager:
                                     continue
                             except Exception as reply_error2:
                                 logger.warning(f"Failed to add reply via comment.reply: {reply_error2}")
-                            
+
                             # Last try create_reply on comment object
                             try:
                                 if hasattr(comment, 'create_reply'):
@@ -594,17 +601,71 @@ class PRManager:
                                     continue
                             except Exception as reply_error3:
                                 logger.warning(f"Failed to add reply via comment.create_reply: {reply_error3}")
-                            
+
                             logger.error(f"No method succeeded in resolving comment {comment_id}")
                         else:
                             logger.warning(f"Comment {comment_id} not found")
                     except Exception as fetch_error:
                         logger.error(f"Failed to fetch comment {comment_id}: {fetch_error}")
-                        
+
                 except Exception as e:
                     logger.error(f"Failed to resolve comment {suggestion_id}: {e}")
-        
+
         except Exception as e:
             logger.error(f"Failed to resolve comments: {e}")
             raise
 
+    def extract_unique_code_diff_units(self, context: PRContext, pr_file: PRFile) -> list[CodeDiffUnit]:
+        """Extract all unique code diff units from a PR file.
+
+        This method extracts all the complete code units affected by changes in a PR file.
+        Each code unit (function, class, etc.) appears only once in the results.
+
+        Args:
+            context: The PR context
+            pr_file: The PR file to extract from
+
+        Returns:
+            A list of unique CodeDiffUnit objects, one for each affected code unit
+        """
+        try:
+            logger.info(f"Extracting code units for {pr_file.filename}")
+
+            # Quick validation
+            if not pr_file.patch:
+                logger.warning(f"No patch available for {pr_file.filename}")
+                return []
+
+            # Get the PR and fetch necessary content
+            pr = self._get_pr(context)
+
+            # Get file content before/after changes as needed
+            before_content = None
+            after_content = None
+
+            # Only get before content if file wasn't added
+            if pr_file.status != "added":
+                before_content = self.get_file_content(
+                    repo=pr.base.repo,
+                    path=pr_file.filename,
+                    ref=pr.base.ref
+                )
+
+            # Only get after content if file wasn't removed
+            if pr_file.status != "removed":
+                after_content = self.get_file_content(
+                    repo=pr.head.repo,
+                    path=pr_file.filename,
+                    ref=pr.head.ref
+                )
+
+            # Extract all unique code units
+            return self._diff_extractor.collect_unique_units_from_pr_file(
+                pr_file=pr_file,
+                before_content=before_content,
+                after_content=after_content
+            )
+
+        except Exception as e:
+            logger.error(f"Error extracting code units from {pr_file.filename}: {e}", exc_info=True)
+            return []

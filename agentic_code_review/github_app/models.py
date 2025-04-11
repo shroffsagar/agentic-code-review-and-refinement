@@ -4,8 +4,7 @@ This module contains data models used throughout the GitHub integration.
 """
 
 from dataclasses import dataclass
-from datetime import datetime
-from typing import Optional, Any
+from typing import Any, Optional
 
 
 @dataclass
@@ -33,3 +32,16 @@ class PRComment:
     tree_id: Optional[int] = None  # tree-sitter's tree ID
     node_type: Optional[str] = None  # Type of code node
     node_name: Optional[str] = None  # Name of code node if applicable
+
+
+@dataclass
+class PRFile:
+    """Represents a file in a pull request."""
+
+    filename: str
+    patch: str | None
+    status: str
+    additions: int
+    deletions: int
+    changes: int
+    previous_filename: str | None = None
