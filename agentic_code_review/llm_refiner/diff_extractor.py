@@ -6,7 +6,7 @@ allowing for better context when analyzing and applying code changes.
 
 import logging
 import re
-from typing import Optional
+from typing import Optional, Tuple
 
 from ..github_app.models import PRFile
 from .context_extractor import ContextExtractor
@@ -43,21 +43,26 @@ class DiffExtractor:
 
         return int(match.group(1)), int(match.group(2))
 
-    def _extract_change_content(self, patch: str, change_header: str) -> str:
-        """Extract the complete content of a change section from the patch.
+    def _extract_change_content(self, patch: str, change_header: str) -> Tuple[str, int, int]:
+        """Extract the complete content of a change section from the patch with line numbers.
 
         Args:
             patch: The complete file patch
             change_header: The change header to find
 
         Returns:
-            The complete change content including the header and all changed lines
+            Tuple of (change_content, old_start_line, new_start_line)
+            where change_content is the complete change content including the header and all changed lines,
+            old_start_line is the starting line number in the old file,
+            and new_start_line is the starting line number in the new file
         """
+        logger.debug(f"Extracting change content from patch: {change_header}")
+        
         # Find the position of this change header in the patch
         start_pos = patch.find(change_header)
         if start_pos == -1:
             logger.warning(f"Could not find change header in patch: {change_header}")
-            return change_header  # Return just the header if we can't find it
+            return change_header, 0, 0
 
         # Find the end of this change section by looking for the next change header or end of patch
         next_change = FIND_CHANGES_PATTERN.search(patch, start_pos + len(change_header))
@@ -67,8 +72,70 @@ class DiffExtractor:
             end_pos = len(patch)
 
         # Extract the complete change section
-        change_content = patch[start_pos:end_pos].strip()
-        return change_content
+        raw_change_content = patch[start_pos:end_pos].strip()
+        
+        # Extract line numbers from header
+        old_start, new_start = self._extract_line_numbers(change_header)
+        if old_start is None or new_start is None:
+            logger.warning(f"Could not extract line numbers from header: {change_header}")
+            return raw_change_content, 0, 0
+        
+        # Add line numbers to the diff content
+        annotated_diff = self._add_line_numbers(raw_change_content, old_start, new_start)
+        return annotated_diff, old_start, new_start
+    
+    def _add_line_numbers(self, diff_content: str, old_start: int, new_start: int) -> str:
+        """Add precise line numbers to each line of the diff.
+        
+        Args:
+            diff_content: Raw diff content
+            old_start: Starting line number in the old file
+            new_start: Starting line number in the new file
+            
+        Returns:
+            Diff content with line numbers added to each line
+        """
+        lines = diff_content.split('\n')
+        if not lines:
+            return diff_content
+            
+        # The first line is the diff header, keep it as is
+        result = [lines[0]]
+        
+        # Track current line positions
+        old_line = old_start
+        new_line = new_start
+        
+        # Process each line after the header
+        for line in lines[1:]:
+            if not line:
+                result.append(line)
+                continue
+                
+            if line.startswith('\\'):
+                # Special case for "\ No newline at end of file"
+                result.append(line)
+                continue
+                
+            if line.startswith('+'):
+                # Added line (only in new file)
+                result.append(f"+{new_line}: {line[1:]}")
+                new_line += 1
+            elif line.startswith('-'):
+                # Removed line (only in old file)
+                result.append(f"-{old_line}: {line[1:]}")
+                old_line += 1
+            elif line.startswith(' '):
+                # Context line (in both files)
+                # We show both line numbers for clarity
+                result.append(f" {old_line},{new_line}: {line[1:]}")
+                old_line += 1
+                new_line += 1
+            else:
+                # Anything else, keep as is
+                result.append(line)
+                
+        return '\n'.join(result)
 
     def _extract_code_context(self, file_path: str, line: int, content: Optional[str]) -> tuple[Optional[str], Optional[CodeContext]]:
         """Extract code and context at a given line.
@@ -206,8 +273,8 @@ class DiffExtractor:
             unique_units = {}
 
             for i, header in enumerate(change_headers):
-                # Get the complete change content
-                change_content = self._extract_change_content(patch, header)
+                # Get the complete change content with line numbers
+                change_content, old_start, new_start = self._extract_change_content(patch, header)
 
                 # Extract the code unit for this change
                 code_diff_unit = self.extract_code_unit_from_change(
