@@ -1,6 +1,8 @@
 """LLM-powered code reviewer implementation."""
 
 import logging
+import difflib
+from enum import Enum, auto
 
 from langchain_core.prompts import PromptTemplate
 from langchain_core.pydantic_v1 import BaseModel, Field
@@ -63,6 +65,13 @@ CHANGES_SECTION_TEMPLATE = """## Changes:
 DIFF_BLOCK_TEMPLATE = """```diff
 {diff_text}
 ```"""
+
+
+class ChangeType(Enum):
+    """Enum representing the type of code change."""
+    NEW = auto()
+    REMOVED = auto()
+    MODIFIED = auto()
 
 
 class LLMReviewer:
@@ -131,46 +140,14 @@ class LLMReviewer:
             List of ReviewComment objects containing the review feedback
         """
         try:
-            before_lines = f"{code_unit.before_context.start_line}-{code_unit.before_context.end_line}" if code_unit.before_context else "N/A"
-            after_lines = f"{code_unit.after_context.start_line}-{code_unit.after_context.end_line}" if code_unit.after_context else "N/A"
-            logger.info(f"Reviewing code unit in {file_path} (before lines: {before_lines}, after lines: {after_lines})")
+            # Determine change type to optimize token usage
+            change_type = self._determine_change_type(code_unit)
+            logger.debug(f"Detected change type: {change_type}")
 
-            # Format before section if available
-            before_section = ""
-            if code_unit.before_context and code_unit.before_code:
-                before_section = self.before_section_template.format(
-                    line_range=before_lines,
-                    code=code_unit.before_code
-                )
-
-            # Format after section if available
-            after_section = ""
-            if code_unit.after_context and code_unit.after_code:
-                after_section = self.after_section_template.format(
-                    line_range=after_lines,
-                    code=code_unit.after_code
-                )
-
-            # Format diff sections if available
-            changes_section = ""
-            if code_unit.diff_texts:
-                diff_blocks = "\n\n".join([
-                    self.diff_block_template.format(diff_text=diff_text)
-                    for diff_text in code_unit.diff_texts
-                ])
-                changes_section = self.changes_section_template.format(diff_blocks=diff_blocks)
-
-            # Combine all sections
-            unit_context = self.code_unit_template.format(
-                file_path=file_path,
-                before_section=before_section,
-                after_section=after_section,
-                changes_section=changes_section
-            )
-
-            # Clean up any empty lines caused by missing sections
-            unit_context = unit_context.replace("\n\n\n", "\n\n")
-
+            # Format context and get compare instruction based on change type
+            unit_context, compare_instruction = self._format_context_by_change_type(file_path, code_unit, change_type, is_test_file)
+            
+            logger.debug(f"Using compare instruction: '{compare_instruction}'")
             logger.debug(f"Prepared context with {len(unit_context)} characters")
 
             # Select prompt and get review from LLM
@@ -199,12 +176,17 @@ class LLMReviewer:
                 code_diff=unit_context,
                 additional_context=additional_context or "No additional context provided.",
                 format_instructions=format_instructions,
+                compare_instruction=compare_instruction
             )
 
             # Log the complete request to the LLM
             logger.debug(f"=== LLM REQUEST for {file_path} ===")
-            logger.debug("PROMPT:")
-            logger.debug(formatted_prompt)
+            logger.debug(f"Prompt length: {len(formatted_prompt)}")
+            # check if logger debug mode is on
+            if logger.getEffectiveLevel() == logging.DEBUG:
+                print("PROMPT (print) : ", formatted_prompt)
+                # logger.debug("PROMPT (logger) : ")
+                # logger.debug(formatted_prompt)
             logger.debug("="*50)
 
             # Get response from LLM
@@ -239,6 +221,178 @@ class LLMReviewer:
         except Exception as e:
             logger.error(f"Error reviewing code unit in {file_path}: {e}")
             raise
+
+    def _determine_change_type(self, code_unit: CodeDiffUnit) -> ChangeType:
+        """Determine the type of change for a code unit.
+        
+        Args:
+            code_unit: The code unit to analyze
+            
+        Returns:
+            ChangeType indicating change type: NEW, REMOVED, or MODIFIED
+        """
+        # New code added (no before code)
+        if not code_unit.before_code and code_unit.after_code:
+            return ChangeType.NEW
+        
+        # Code removed (no after code)
+        if code_unit.before_code and not code_unit.after_code:
+            return ChangeType.REMOVED
+        
+        # Code modified (both before and after exist)
+        return ChangeType.MODIFIED
+        
+    def _format_context_by_change_type(self, file_path: str, code_unit: CodeDiffUnit, change_type: ChangeType, is_test_file: bool = False) -> tuple[str, str]:
+        """Format the code context and generate compare instruction based on the type of change.
+        
+        Args:
+            file_path: Path to the file
+            code_unit: CodeDiffUnit containing the code to review
+            change_type: Type of change (NEW, REMOVED, or MODIFIED)
+            is_test_file: Whether this is a test file
+            
+        Returns:
+            Tuple of (formatted_context_string, compare_instruction)
+        """
+        # Always include diff sections if available
+        changes_section = ""
+        if code_unit.diff_texts:
+            diff_blocks = "\n\n".join([
+                self.diff_block_template.format(diff_text=diff_text)
+                for diff_text in code_unit.diff_texts
+            ])
+            changes_section = self.changes_section_template.format(diff_blocks=diff_blocks)
+        
+        # Generate compare instruction based on change type
+        if change_type == ChangeType.NEW:
+            compare_instruction = "Review the new code for correctness, efficiency, and seamless integration."
+            
+            after_section = ""
+            if code_unit.after_context and code_unit.after_code:
+                after_lines = f"{code_unit.after_context.start_line}-{code_unit.after_context.end_line}"
+                after_section = self.after_section_template.format(
+                    line_range=after_lines,
+                    code=code_unit.after_code
+                )
+            
+            # Combine sections
+            unit_context = self.code_unit_template.format(
+                file_path=file_path,
+                before_section="",  # Skip before section for new functions
+                after_section=after_section,
+                changes_section=changes_section
+            )
+        
+        # For removed functions, include only diff and before section
+        elif change_type == ChangeType.REMOVED:
+            compare_instruction = "Assess the removed code for its previous functionality and its impact on the system."
+            
+            before_section = ""
+            if code_unit.before_context and code_unit.before_code:
+                before_lines = f"{code_unit.before_context.start_line}-{code_unit.before_context.end_line}" 
+                before_section = self.before_section_template.format(
+                    line_range=before_lines,
+                    code=code_unit.before_code
+                )
+            
+            # Combine sections
+            unit_context = self.code_unit_template.format(
+                file_path=file_path,
+                before_section=before_section,
+                after_section="",  # Skip after section for removed functions
+                changes_section=changes_section
+            )
+        
+        # For modified functions, include diff and determine if both versions are needed
+        else:
+            # Determine complexity of change to decide if both before and after are needed
+            include_both_versions = self._is_complex_change(code_unit)
+            
+            if include_both_versions:
+                compare_instruction = "Compare the before and after code to evaluate changes in logic, performance, and maintainability."
+            else:
+                compare_instruction = "Review the updated code and its diff to confirm that the changes improve or maintain existing logic, performance, and code quality."
+            
+            before_section = ""
+            if include_both_versions and code_unit.before_context and code_unit.before_code:
+                before_lines = f"{code_unit.before_context.start_line}-{code_unit.before_context.end_line}"
+                before_section = self.before_section_template.format(
+                    line_range=before_lines,
+                    code=code_unit.before_code
+                )
+            
+            after_section = ""
+            if code_unit.after_context and code_unit.after_code:
+                after_lines = f"{code_unit.after_context.start_line}-{code_unit.after_context.end_line}"
+                after_section = self.after_section_template.format(
+                    line_range=after_lines,
+                    code=code_unit.after_code
+                )
+            
+            # Combine sections
+            unit_context = self.code_unit_template.format(
+                file_path=file_path,
+                before_section=before_section,
+                after_section=after_section,
+                changes_section=changes_section
+            )
+            
+        # Add test-specific wording if needed
+        if is_test_file and "test" not in compare_instruction:
+            compare_instruction += " test"
+            
+        # Clean up any empty lines caused by missing sections
+        unit_context = unit_context.replace("\n\n\n", "\n\n")
+        
+        return unit_context, compare_instruction
+        
+    def _is_complex_change(self, code_unit: CodeDiffUnit) -> bool:
+        """Determine if a change is complex enough to warrant including both before and after versions.
+        
+        Args:
+            code_unit: The code unit to analyze
+                
+        Returns:
+            True if the change is complex, False otherwise.
+        """
+        # If we don't have both before and after, it's not a complex change.
+        if not code_unit.before_code or not code_unit.after_code:
+            return False
+
+        # Preprocess the code: strip excessive whitespace and split into non-empty lines.
+        before_lines = [line for line in code_unit.before_code.strip().split("\n") if line.strip()]
+        after_lines = [line for line in code_unit.after_code.strip().split("\n") if line.strip()]
+
+        # If either snippet is very short, include both for context.
+        if len(before_lines) < 5 or len(after_lines) < 5:
+            return True
+
+        # Calculate a simple change percentage based on line count.
+        total_lines = max(len(before_lines), len(after_lines))
+        line_diff = abs(len(before_lines) - len(after_lines))
+        change_percentage = line_diff / total_lines if total_lines > 0 else 0
+
+        logger.debug(f"Line change percentage: {change_percentage:.2f}")
+        if change_percentage > 0.3:
+            return True
+
+        # Use a similarity ratio to assess how much the content changed.
+        # Normalize strings to minimize differences due to formatting.
+        before_clean = "\n".join(before_lines)
+        after_clean = "\n".join(after_lines)
+        similarity = difflib.SequenceMatcher(None, before_clean, after_clean).ratio()
+        logger.debug(f"Similarity ratio: {similarity:.2f}")
+
+        # If the content similarity is below a threshold, mark as complex.
+        if similarity < 0.7:
+            return True
+
+        # Finally, use the number of diff hunks as a proxy for complexity.
+        if len(code_unit.diff_texts) >= 3:
+            return True
+
+        # Default: not a complex change.
+        return False
 
     async def review_file(self, file: FileToReview) -> list[ReviewComment]:
         """Review a single file by reviewing each code unit separately.

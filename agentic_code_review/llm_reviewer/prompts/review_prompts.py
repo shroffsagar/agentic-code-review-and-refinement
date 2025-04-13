@@ -13,12 +13,15 @@ Priority areas:
 
 Context:
 File: {file_path}
-Code Unit Context: {code_diff}
+
+Code Unit Context: 
+{code_diff}
+
 Additional Information: {additional_context}
 
 Instructions:
 - Review THIS SPECIFIC CODE UNIT, not the entire file
-- Compare the before and after versions of the code unit
+- {compare_instruction}
 - Examine the specific changes made (in the diff sections)
 - Suggest improvements based on what changed in this unit
 - Check for issues that might be introduced by these changes
@@ -37,12 +40,6 @@ KEY RULES:
 
 Focus only on substantive issues. Be concise."""
 
-# Create PromptTemplate instances
-code_review_prompt = PromptTemplate(
-    input_variables=["file_path", "code_diff", "additional_context", "format_instructions"],
-    template=CODE_REVIEW_TEMPLATE,
-)
-
 # Template for reviewing test files specifically
 TEST_REVIEW_TEMPLATE = """Expert test reviewer. Focus on high-impact issues only.
 Priority areas:
@@ -57,7 +54,7 @@ Additional Information: {additional_context}
 
 Instructions:
 - Review THIS SPECIFIC TEST UNIT, not the entire file
-- Compare the before and after versions of the test code
+- {compare_instruction}
 - Examine the specific changes made (in the diff sections)
 - Verify that the test coverage remains adequate after changes
 - Check for test issues that might be introduced by these changes
@@ -76,8 +73,14 @@ KEY RULES:
 
 Focus only on substantive issues. Be concise."""
 
+# Create PromptTemplate instances
+code_review_prompt = PromptTemplate(
+    input_variables=["file_path", "code_diff", "additional_context", "format_instructions", "compare_instruction"],
+    template=CODE_REVIEW_TEMPLATE,
+)
+
 # Create PromptTemplate for test review
 test_review_prompt = PromptTemplate(
-    input_variables=["file_path", "code_diff", "additional_context", "format_instructions"],
+    input_variables=["file_path", "code_diff", "additional_context", "format_instructions", "compare_instruction"],
     template=TEST_REVIEW_TEMPLATE,
 )
