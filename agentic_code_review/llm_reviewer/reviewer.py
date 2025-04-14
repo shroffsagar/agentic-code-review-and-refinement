@@ -163,7 +163,7 @@ class LLMReviewer:
                   "category": "string (one of: Quality, Performance, Security, Testing, Maintainability, Coverage)",
                   "severity": "string (one of: High, Medium, Low)",
                   "description": "string (detailed description of the issue)",
-                  "suggestion": "string (concrete suggestion for improvement)",
+                  "suggestion": "string (concrete suggestion with examples for improvement)",
                   "side": "string (one of: LEFT, RIGHT) - LEFT for old/deleted code, RIGHT for new/modified code"
                 }
               ]

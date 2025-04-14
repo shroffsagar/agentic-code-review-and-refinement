@@ -18,7 +18,7 @@ Our system follows a structured workflow that ensures thorough code analysis and
 
 The workflow consists of several key stages:
 1. **Review Agent** analyzes code changes and generates contextual review comments
-2. **Human Review** allows developers to review and filter AI-generated suggestions
+2. **Human Review** (`Work in Progress`) allows developers to review and filter AI-generated suggestions
 3. **Refinement Agent** implements approved suggestions with AST-based code modifications
 4. **Validation & Patching** ensures all changes are syntactically correct and safe
 
@@ -30,7 +30,7 @@ You can view and edit this workflow diagram in Excalidraw: [Agentic Workflow Dia
 - **Automated Code Refinement**: Implements approved suggestions directly into your codebase
 - **GitHub Integration**: Seamlessly works within the GitHub PR workflow using labels and comments
 - **Language Agnostic**: Supports multiple programming languages through tree-sitter integration (Python, JavaScript/TypeScript, Java)
-- **Human-in-the-Loop**: Maintains human oversight with approval mechanisms for all automated changes
+- **Human-in-the-Loop** (Work in Progress): Maintains human oversight with approval mechanisms for all automated changes
 - **Context-Aware Analysis**: Understands code structure and relationships between components
 
 ## Getting Started
