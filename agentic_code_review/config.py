@@ -31,7 +31,7 @@ class Settings(BaseSettings):
     LLM_PROVIDER: str = "openai"  # New field to specify the LLM provider
 
     # Application settings
-    LOG_LEVEL: str = "INFO"
+    LOG_LEVEL: str = "DEBUG"
     HOST: str = "0.0.0.0"
     PORT: int = 8000
     DEBUG: bool = False
@@ -54,7 +54,7 @@ class Settings(BaseSettings):
             super().__init__(**kwargs)
             logger.info("Settings initialized successfully")
         except Exception as e:
-            logger.error(f"Error initializing Settings: {str(e)}")
+            logger.error(f"Error initializing Settings: {e!s}")
             raise
 
 # Create global settings instance
@@ -62,5 +62,5 @@ try:
     settings = Settings()
     logger.info("Global settings instance created successfully")
 except Exception as e:
-    logger.error(f"Error creating global settings instance: {str(e)}")
+    logger.error(f"Error creating global settings instance: {e!s}")
     raise
